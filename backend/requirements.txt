@@ -1,0 +1,13 @@
+flask 
+flask_sqlalchemy
+flask_migrate
+werkzeug
+flask_cors
+flask_jwt_extended
+
+
+redis
+celery
+python-dotenv
+reportlab
+
