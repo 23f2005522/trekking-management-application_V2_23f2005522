@@ -1,0 +1,132 @@
+<template>
+
+  <!-- Toggle -->
+
+  <button
+    class="btn btn-success m-3"
+    type="button"
+    data-bs-toggle="offcanvas"
+    data-bs-target="#trekkerSidebar">
+
+    <i class="bi bi-list"></i>
+
+  </button>
+
+  <!-- Sidebar -->
+
+  <div
+    class="offcanvas offcanvas-start text-bg-success py-4"
+    tabindex="-1"
+    id="trekkerSidebar">
+
+    <div class="offcanvas-header border-bottom">
+
+      <h5 class="offcanvas-title">
+
+        <i class="bi bi-mountains me-2"></i>
+
+        TrekMaster
+
+      </h5>
+
+      <button
+        class="btn-close btn-close-white"
+        data-bs-dismiss="offcanvas">
+      </button>
+
+    </div>
+
+    <div class="offcanvas-body d-flex flex-column p-0">
+
+      <ul class="nav nav-pills flex-column p-3 flex-grow-1">
+
+        <li class="nav-item mb-2">
+
+          <router-link
+            to="/trekker/dashboard"
+            class="nav-link active bg-white text-success">
+
+            <i class="bi bi-speedometer2 me-2"></i>
+
+            Dashboard
+
+          </router-link>
+
+        </li>
+
+        <li class="nav-item mb-2">
+
+          <router-link
+            to="/trekker/treks"
+            class="nav-link text-white">
+
+            <i class="bi bi-signpost-2 me-2"></i>
+
+            Browse Treks
+
+          </router-link>
+
+        </li>
+
+        <li class="nav-item mb-2">
+
+          <router-link
+            to="/trekker/bookings"
+            class="nav-link text-white">
+
+            <i class="bi bi-calendar-check me-2"></i>
+
+            My Bookings
+
+          </router-link>
+
+        </li>
+
+        <li class="nav-item mb-2">
+
+          <router-link
+            to="/trekker/history"
+            class="nav-link text-white">
+
+            <i class="bi bi-clock-history me-2"></i>
+
+            History
+
+          </router-link>
+
+        </li>
+
+        <li class="nav-item mb-2">
+
+          <router-link
+            to="/trekker/profile"
+            class="nav-link text-white">
+
+            <i class="bi bi-person-circle me-2"></i>
+
+            Profile
+
+          </router-link>
+
+        </li>
+
+        <li class="nav-item mt-auto pt-3 border-top">
+          <div @click="logout" class="nav-link text-danger">
+            <i class="bi bi-box-arrow-right me-2"></i>
+
+            Logout
+          </div>
+        </li>
+
+      </ul>
+
+    </div>
+
+  </div>
+
+</template>
+
+<script setup>
+import logout from '../../../utils/logout';
+
+</script>

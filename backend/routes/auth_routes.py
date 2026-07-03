@@ -1,5 +1,5 @@
 from flask import Blueprint, jsonify, request
-from flask_jwt_extended import create_access_token, jwt_required, get_jwt 
+from flask_jwt_extended import create_access_token, jwt_required, get_jwt
 from model.model import *
 from utils.auth_utility import role_required
 
@@ -53,6 +53,8 @@ def register():
                     "phone": user.phone,
                     "role": user.role,
                 },
+                "username": user.username,
+                "role": user.role,
             }
 
             return jsonify(response), 201
@@ -71,7 +73,7 @@ def register():
             db.session.commit()
 
             response = {
-                "message": "Staff registered successfully.",
+                "message": "Staff registered successfully. Please wait for admin approval.",
                 "user": {
                     "id": user.id,
                     "username": user.username,
@@ -83,6 +85,8 @@ def register():
                     "id": staff_profile.id,
                     "user_id": staff_profile.user_id,
                 },
+                "username": user.username,
+                "role": user.role,
             }
 
             return jsonify(response), 201
@@ -104,6 +108,8 @@ def login():
     password = data.get("password").strip() if data else None
     role = data.get("role").strip() if data else None
 
+    print(data)  # Debugging line to print the received data
+
     if not email or not password or not role:
         response = {"message": "Email, password, and role are required fields."}
 
@@ -123,42 +129,59 @@ def login():
             response = {"message": "Staff account needs approval."}
             return jsonify(response), 401
         if user.staff_profile.Profile_status == StaffStatus.REJECTED.value:
-            response = {"message": "Staff account has been rejected by the administrator."}
+            response = {
+                "message": "Staff account has been rejected by the administrator."
+            }
             return jsonify(response), 403
-        
-        
+
     # Create a JWT token for the user
     access_token = create_access_token(
         identity=str(user.id),
         additional_claims={"role": user.role, "email": user.email},
     )
 
-    response = {"message": "Login successful.", "access_token": access_token}
+    response = {
+        "message": "Login successful.",
+        "access_token": access_token,
+        "role": user.role,
+        "username": user.username,
+        "user": {
+            "id": user.id,
+            "username": user.username,
+            "email": user.email,
+            "phone": user.phone,
+            "role": user.role,
+            
+        },
+    }
+    
+    if user.role == UserRole.STAFF.value:
+        response["staff_profile"] = {
+            "id": user.staff_profile.id,
+            "profile_status": user.staff_profile.Profile_status,
+        }
 
     return jsonify(response), 200
 
 
-
-
 # for testing the role_required decorator and JWT token
 # @auth_bp.route("/protected", methods=["GET"])
-# @jwt_required() 
-# @role_required(UserRole.ADMIN.value) 
+# @jwt_required()
+# @role_required(UserRole.ADMIN.value)
 
 # def protected():
 #     tokendata = get_jwt ()  # getting the data from the JWT token
 #     userid = tokendata.get("sub")  # getting the user id from the token data
 #     user_emial = tokendata.get("email")  # getting the user email from the token data
 #     user_role = tokendata.get("role")  # getting the user role from the token data
-    
+
 #     print(f"User ID: {userid}, Email: {user_emial}, Role: {user_role}")  # printing the user data to the console
-    
+
 #     response = {
 #         "message": "You have accessed a protected route.",
 #         "user_id": userid,
 #         "user_email": user_emial,
 #         "user_role": user_role,
 #     }
-    
-#     return jsonify(response), 200 
-    
+
+#     return jsonify(response), 200
