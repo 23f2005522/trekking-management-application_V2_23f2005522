@@ -28,10 +28,23 @@ const approuter = {
 
     // Admin route
     {
-      path: '/admin/dashboard',
-      name: 'admindashboard',
-      component: () => import("@/views/adminView/adminDashboardView.vue"),
-      meta: { requiresAuth: true, role: 'admin' }
+      path: '/admin',
+      name: 'admin',
+      component: () => import("@/views/adminView/adminView.vue"),
+      meta: { requiresAuth: true, role: 'admin' },
+      children: [
+        {
+          path: 'dashboard',
+          name: 'admindashboard',
+          component: () => import("@/views/adminView/adminDashboardView.vue")
+        }
+        , 
+        {
+          path : "treks" , 
+          name : "manageTreks" ,
+          component: () => import("@/views/adminView/manageTrek.vue")
+        }
+      ]
     },
 
 

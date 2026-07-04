@@ -25,7 +25,7 @@ import logout from '../../../utils/logout'
     <div class="offcanvas-body d-flex flex-column p-0">
       <ul class="nav nav-pills flex-column p-3 flex-grow-1">
         <li class="nav-item mb-2">
-          <router-link to="/admin/dashboard" class="nav-link active bg-white text-success">
+          <router-link to="/admin/dashboard" class="nav-link text-white">
             <i class="bi bi-speedometer2 me-2"></i>
 
             Dashboard
@@ -99,3 +99,22 @@ import logout from '../../../utils/logout'
     </div>
   </div>
 </template>
+
+
+<style scoped>
+.nav-link {
+  color: white;
+  transition: all 0.2s ease;
+}
+
+.nav-link:hover {
+  background: rgba(255,255,255,.15);
+  color: white;
+}
+
+.nav-link.router-link-active {
+  background: white;
+  color: #198754 !important;
+  font-weight: 600;
+}
+</style>

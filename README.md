@@ -4,14 +4,9 @@ Adventure organizations require an efficient system to manage trekking activitie
 
 This is **Version 2** of the Trekking Management Application, developed using **Flask (Backend)** and **Vue.js (Frontend)**.
 
-## Repository
-
-GitHub Repository:
-
-https://github.com/23f2005522/trekking-management-application_v2_23f2005522
-
 ---
-
+[V1_GitHub Repository URL](https://github.com/23f2005522/trekking-management-application_23f2005522)
+---
 # Installation (Windows)
 
 ## Step 1: Clone the repository
@@ -152,24 +147,24 @@ backend/db/seed_data.py
 
 ## Admin
 
-| Email | Password |
-|--------|----------|
-| `admin@tma.com` | `admin` |
+| Email           | Password |
+| --------------- | -------- |
+| `admin@tma.com` | `admin`  |
 
 ---
 
 ## Trek Staff
 
-| Email | Password |
-|--------|----------|
-| `dummy_staff@tma.com` | `staff` |
+| Email                 | Password |
+| --------------------- | -------- |
+| `dummy_staff@tma.com` | `staff`  |
 
 ---
 
 ## Trekker
 
-| Email | Password |
-|--------|----------|
+| Email           | Password  |
+| --------------- | --------- |
 | `dummy@tma.com` | `trekker` |
 
 ---

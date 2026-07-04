@@ -151,16 +151,24 @@ def login():
             "email": user.email,
             "phone": user.phone,
             "role": user.role,
-            
         },
     }
-    
+
     if user.role == UserRole.STAFF.value:
         response["staff_profile"] = {
             "id": user.staff_profile.id,
             "profile_status": user.staff_profile.Profile_status,
         }
 
+    return jsonify(response), 200
+
+
+@auth_bp.route("/logout", methods=["POST"])
+@jwt_required()
+def logout():
+    # Invalidate the JWT token using Redis/DB [Later]
+
+    response = {"message": "Logout successful."}
     return jsonify(response), 200
 
 
