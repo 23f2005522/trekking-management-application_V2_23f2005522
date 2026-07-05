@@ -49,10 +49,10 @@ import logout from '../../utils/logout'
         </li>
 
         <li class="nav-item mb-2">
-          <router-link to="/admin/users" class="nav-link text-white">
+          <router-link to="/admin/trekkers" class="nav-link text-white">
             <i class="bi bi-people me-2"></i>
 
-            Manage Users
+            Manage Trekkers
           </router-link>
         </li>
 
