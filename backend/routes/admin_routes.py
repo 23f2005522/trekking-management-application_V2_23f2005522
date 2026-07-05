@@ -395,7 +395,7 @@ def get_staffs():
         return jsonify(response), 500
     
     
-# Approve or Reject  or Blacklist or deBlacklist staff member
+# Approve or Reject or Blacklist or dePending staff member
 @admin_bp.route("/staffs/<int:staff_id>/<string:status>", methods=["POST"])
 @jwt_required()
 @role_required(UserRole.ADMIN)
@@ -407,35 +407,42 @@ def update_staff_status(staff_id, status):
                 "message": "Staff member not found.",
             }
             return jsonify(response), 404
-        
+
         data = request.get_json(silent=True)
-        reason = data.get("reason") if data else None
-        
+        reason = data.get("reason") if data and data.get("reason") else "No reason provided"
 
         if status.lower() == StaffStatus.APPROVED.value.lower():
+            staff_user.is_blacklisted = False
             staff_user.staff_profile.Profile_status = StaffStatus.APPROVED
             staff_user.is_active = True
-            staff_user.blacklisted_reason = None  
+            staff_user.blacklisted_reason = None
+
         elif status.lower() == StaffStatus.REJECTED.value.lower():
             staff_user.staff_profile.Profile_status = StaffStatus.REJECTED
             staff_user.is_active = False
+            staff_user.blacklisted_reason = reason
+
         elif status.lower() == StaffStatus.BLACKLISTED.value.lower():
+            staff_user.is_blacklisted = True
             staff_user.staff_profile.Profile_status = StaffStatus.BLACKLISTED
             staff_user.is_active = False
             staff_user.blacklisted_reason = reason
+
         elif status.lower() == StaffStatus.PENDING.value.lower():
             staff_user.staff_profile.Profile_status = StaffStatus.PENDING
             staff_user.is_active = False
+            staff_user.blacklisted_reason = None
+
         else:
             response = {
-                "message": "Invalid status. Use 'approve', 'reject', 'blacklist', or 'unblacklist'.",
+                "message": "Invalid status. Use 'approved', 'rejected', 'blacklisted', or 'pending'.",
             }
             return jsonify(response), 400
 
         db.session.commit()
 
         response = {
-            "message": f"Staff member {status}d successfully.",
+            "message": f"Staff member {status} successfully.",
             "staff": {
                 "user_id": staff_user.id,
                 "username": staff_user.username,
@@ -443,6 +450,7 @@ def update_staff_status(staff_id, status):
                 "email": staff_user.email,
                 "status": staff_user.staff_profile.Profile_status.value,
                 "is_active": staff_user.is_active,
+                "blacklisted_reason": staff_user.blacklisted_reason,
             },
         }
 
@@ -455,7 +463,6 @@ def update_staff_status(staff_id, status):
             "message": "An error occurred while updating staff status.",
         }
         return jsonify(response), 500
-    
 
 # Trekkers routes
 
@@ -507,7 +514,7 @@ def update_trekker_status(trekker_id, action):
             return jsonify(response), 404
         
         data = request.get_json(silent=True)
-        reason = data.get("reason") if data else None
+        reason = data.get("reason") if data and data.get("reason") else "No reason provided"
         
 
         if action.lower() == "blacklist":

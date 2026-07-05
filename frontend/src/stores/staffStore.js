@@ -1,5 +1,5 @@
 import { defineStore } from "pinia";
-import { computed, ref } from "vue";
+import { computed, ref, watch } from "vue";
 import { useFlashStore } from "./flashStore";
 import axiosInstance from "@/utils/axioUtil";
 
@@ -15,12 +15,16 @@ export const useStaffStore = defineStore("Staff", () => {
 
     const selectedStaffId = ref(null);
 
+    // moved in from the modal
+    const selectedStatus = ref("");
+    const reason = ref("");
+
     //gettres
     const filteredStaffs = computed(() => {
         const query = staffsearchQuery.value.trim().toLowerCase();
-        if (!query) return allStaffs.value; // return the all staffs if no search query is provided
+        if (!query) return allStaffs.value;
 
-        return allStaffs.value.filter((staff) => { // filter the staffs array based on the search query
+        return allStaffs.value.filter((staff) => {
             return (
                 staff.username.toLowerCase().includes(query) ||
                 staff.email.toLowerCase().includes(query) ||
@@ -41,8 +45,7 @@ export const useStaffStore = defineStore("Staff", () => {
 
     const rejectedStaffs = computed(() => {
         return allStaffs.value.filter((staff) => staff.status === "rejected");
-    }
-    );
+    });
 
     const blacklistedStaffs = computed(() => {
         return allStaffs.value.filter((staff) => staff.status === "blacklisted");
@@ -54,8 +57,25 @@ export const useStaffStore = defineStore("Staff", () => {
         ) || null;
     })
 
+    // whenever the selected staff changes, sync the form fields
+    // (this replaces the watch that used to live inside manageStaffModal.vue)
+    watch(
+        selectedStaff,
+        (newVal) => {
+            if (!newVal) {
+                selectedStatus.value = "";
+                reason.value = "";
+            } else {
+                selectedStatus.value = newVal.status;
+                reason.value = newVal.blacklisted_reason || "";
+            }
+        },
+        { immediate: true },
+    );
+
     // Actions
     async function allFetchStaffs() {
+        loadingStaffs.value = true;
         try {
             const { data } = await axiosInstance.get("/admin/staffs");
             allStaffs.value = data.staffs;
@@ -68,27 +88,22 @@ export const useStaffStore = defineStore("Staff", () => {
         }
     }
 
-    async function handelEditStaff(staffId, updateStatus, reason) {
-        console.log("Editing staff with ID:", staffId, "Updated Status:", updateStatus, "Reason:", reason);
+    async function handelEditStaff() {
         try {
-            const response = await axiosInstance.post(`/admin/staffs/${staffId}/${updateStatus}`, { reason });
+            const response = await axiosInstance.post(
+                `/admin/staffs/${selectedStaffId.value}/${selectedStatus.value}`,
+                { reason: reason.value }
+            );
 
             flashStore.show(response.data.message || "Staff updated successfully.", "success");
 
-           //refresh the staff list after editing
+            //refresh the staff list after editing
             await allFetchStaffs();
-
-           
-            
-  
-
 
         } catch (error) {
             flashStore.show(error.response?.data?.message || "Failed to edit staff.", "error");
             console.error("Error editing staff:", error);
         }
-
-
     }
 
 
@@ -97,10 +112,11 @@ export const useStaffStore = defineStore("Staff", () => {
         allStaffs,
         loadingStaffs,
         staffsearchQuery,
-        
+
         selectedStaffId,
         selectedStaff,
-        
+        selectedStatus,
+        reason,
 
         // Getters
         filteredStaffs,
@@ -108,14 +124,11 @@ export const useStaffStore = defineStore("Staff", () => {
         rejectedStaffs,
         pendingStaffs,
         blacklistedStaffs,
-        
-
 
         // Actions
         allFetchStaffs,
         handelEditStaff
 
     }
-
 
 })

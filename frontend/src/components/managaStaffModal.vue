@@ -1,25 +1,7 @@
 <script setup>
 import { useStaffStore } from '@/stores/staffStore'
-import { ref, watch } from 'vue'
 
 const staffStore = useStaffStore()
-
-const selectedStatus = ref('')
-const reason = ref('')
-
-watch(
-  () => staffStore.selectedStaff,
-  (oldVal, newVal) => {
-    if (!newVal) {
-      selectedStatus.value = ''
-      reason.value = ''
-    } else {
-      selectedStatus.value = newVal.status
-      reason.value = newVal.reason || ''
-    }
-  },
-  { immediate: true },
-)
 </script>
 
 <template>
@@ -61,7 +43,12 @@ watch(
           <label class="fw-semibold mb-2"> Change Status </label>
 
           <div class="form-check">
-            <input class="form-check-input" type="radio" value="pending" v-model="selectedStatus" />
+            <input
+              class="form-check-input"
+              type="radio"
+              value="pending"
+              v-model="staffStore.selectedStatus"
+            />
             <label class="form-check-label"> Pending </label>
           </div>
 
@@ -70,7 +57,7 @@ watch(
               class="form-check-input"
               type="radio"
               value="approved"
-              v-model="selectedStatus"
+              v-model="staffStore.selectedStatus"
             />
             <label class="form-check-label text-success"> Approved </label>
           </div>
@@ -80,7 +67,7 @@ watch(
               class="form-check-input"
               type="radio"
               value="rejected"
-              v-model="selectedStatus"
+              v-model="staffStore.selectedStatus"
             />
             <label class="form-check-label text-danger"> Rejected </label>
           </div>
@@ -90,14 +77,14 @@ watch(
               class="form-check-input"
               type="radio"
               value="blacklisted"
-              v-model="selectedStatus"
+              v-model="staffStore.selectedStatus"
             />
             <label class="form-check-label"> Blacklisted </label>
           </div>
 
           <label class="fw-semibold"> Reason </label>
 
-          <textarea rows="4" class="form-control" v-model="reason" />
+          <textarea rows="4" class="form-control" v-model="staffStore.reason" />
         </div>
 
         <div v-else class="modal-body text-center">Loading...</div>
@@ -105,7 +92,9 @@ watch(
         <div class="modal-footer">
           <button class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
 
-          <button class="btn btn-success" @click="staffStore.handelEditStaff(staffStore.selectedStaffId, selectedStatus, reason)">Save Changes</button>
+          <button class="btn btn-success" @click="staffStore.handelEditStaff()">
+            Save Changes
+          </button>
         </div>
       </div>
     </div>
