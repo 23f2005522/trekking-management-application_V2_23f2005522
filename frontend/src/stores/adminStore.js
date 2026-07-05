@@ -1,6 +1,6 @@
 import { defineStore } from "pinia";
 import { reactive, ref } from "vue";
-import axiosInstance from "../../utils/axioUtil";
+import axiosInstance from "../utils/axioUtil";
 import { useFlashStore } from "./flashStore";
 
 const flashStore = useFlashStore();
@@ -16,6 +16,10 @@ export const useAdminStore = defineStore("Admin", () => {
 
     // Actions
     const fetchAdminData = async () => {
+        
+        // if data already exists, no need to fetch again
+        if( admin.value && dashboardData.value) return;
+        
         loadingAdmin.value = true;
 
         try {

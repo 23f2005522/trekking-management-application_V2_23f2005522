@@ -105,3 +105,355 @@ def get_admin_data():
                 "message": "An error occurred while fetching admin data.",
             }
             return jsonify(response), 500
+
+
+# get all treks detalils
+@admin_bp.route("/treks", methods=["GET"])
+@jwt_required()
+@role_required(UserRole.ADMIN)
+def get_treks():
+    try:
+        treks = TrekModel.query.all()
+        treks_JSON = [
+            {
+                "id": trek.id,
+                "name": trek.name,
+                "location": trek.location,
+                "difficulty": trek.difficulty.value,
+                "TotalSlots": trek.total_slots,
+                "availableSlots": trek.available_slots,
+                "status": trek.status.value,
+                "assigned_staff_id": (
+                    trek.assigned_staff_id if trek.assigned_staff_id else None
+                ),
+            }
+            for trek in treks
+        ]
+
+        response = {
+            "message": "Treks fetched successfully.",
+            "treks": treks_JSON,
+        }
+
+        return jsonify(response), 200
+
+    except Exception as e:
+        print(f"Error fetching treks: {str(e)}")
+        response = {
+            "message": "An error occurred while fetching treks.",
+        }
+        return jsonify(response), 500
+
+
+# add an new trek
+@admin_bp.route("/addtrek", methods=["POST"])
+@jwt_required()
+@role_required(UserRole.ADMIN)
+def add_trek():
+    try:
+        data = request.get_json(silent=True)
+        name = data.get("name") if data else None
+        location = data.get("location") if data else None
+        difficulty = data.get("difficulty") if data else None
+        duration = data.get("duration") if data else None
+        totalSlots = data.get("totalSlots") if data else None
+        price = data.get("price") if data else None
+        imageUrl = data.get("imageUrl") if data else None
+        description = data.get("description") if data else None
+        startDate = data.get("startDate") if data else None
+        endDate = data.get("endDate") if data else None
+        assignedStaffId = data.get("assignedStaffId") if data else None
+
+        # same trek cant be added before the previous trek is completed
+        exsiting_trek = TrekModel.query.filter_by(name=name).first()
+        if exsiting_trek:
+            response = {
+                "message": "A trek with the same name already exists. Please wait for the previous trek to be completed before adding a new one.",
+            }
+            return jsonify(response), 400
+
+        # check even that assigned staff exists
+        if assignedStaffId:
+            staff_member = UserModel.query.filter_by(
+                id=assignedStaffId, role=UserRole.STAFF
+            ).first()
+            if not staff_member:
+                response = {
+                    "message": "The assigned staff member does not exist.",
+                }
+                return jsonify(response), 400
+
+        new_trek = TrekModel(
+            name=name,
+            location=location,
+            difficulty=TrekDifficulty(difficulty),
+            duration=int(duration),
+            total_slots=int(totalSlots),
+            available_slots=int(totalSlots),
+            price=float(price),
+            image_url=imageUrl,
+            description=description,
+            starting_at=datetime.strptime(startDate, "%Y-%m-%d"),
+            ending_at=datetime.strptime(endDate, "%Y-%m-%d"),
+            assigned_staff_id=int(assignedStaffId) if assignedStaffId else None,
+        )
+
+        db.session.add(new_trek)
+        db.session.commit()
+
+        response = {
+            "message": "Trek added successfully.",
+            "trek": {
+                "id": new_trek.id,
+                "name": new_trek.name,
+                "location": new_trek.location,
+                "difficulty": new_trek.difficulty.value,
+                "total_slots": new_trek.total_slots,
+                "available_slots": new_trek.available_slots,
+                "price": new_trek.price,
+                "image_url": new_trek.image_url,
+                "description": new_trek.description,
+                "starting_at": new_trek.starting_at.strftime("%Y-%m-%d"),
+                "ending_at": new_trek.ending_at.strftime("%Y-%m-%d"),
+                "assigned_staff_id": new_trek.assigned_staff_id,
+            },
+        }
+
+        return jsonify(response), 201
+
+    except Exception as e:
+        db.session.rollback()  # Rollback the session in case of an error
+        print(f"Error occurred while adding the trek: {e}")
+        response = {
+            "message": "An error occurred while adding the trek.",
+        }
+        return jsonify(response), 500
+
+
+@admin_bp.route("/edittrek/<int:trek_id>", methods=["GET", "POST"])
+@jwt_required()
+@role_required(UserRole.ADMIN)
+def edit_trek(trek_id):
+
+    if request.method == "GET":
+        try:
+            trek = TrekModel.query.get(trek_id)
+            if not trek:
+                response = {
+                    "message": "Trek not found.",
+                }
+                return jsonify(response), 404
+
+            trek_JSON = {
+                "id": trek.id,
+                "name": trek.name,
+                "location": trek.location,
+                "difficulty": trek.difficulty.value,
+                "total_slots": trek.total_slots,
+                "available_slots": trek.available_slots,
+                "price": trek.price,
+                "image_url": trek.image_url,
+                "description": trek.description,
+                "starting_at": trek.starting_at.strftime("%Y-%m-%d"),
+                "ending_at": trek.ending_at.strftime("%Y-%m-%d"),
+                "assigned_staff_id": trek.assigned_staff_id,
+            }
+
+            response = {
+                "message": "Trek fetched successfully.",
+                "trek": trek_JSON,
+            }
+
+            return jsonify(response), 200
+
+        except Exception as e:
+            print(f"Error fetching trek: {str(e)}")
+            response = {
+                "message": "An error occurred while fetching the trek.",
+            }
+            return jsonify(response), 500
+
+    if request.method == "POST":
+        
+        trek = TrekModel.query.filter(TrekModel.id == int(trek_id)).first()
+        
+        if not trek:
+            response = {
+                "message": "Trek not found.",
+            }
+            return jsonify(response), 404
+
+        ## Update trek details
+        try:
+
+
+            data = request.get_json(silent=True)
+            print(f"Received data for updating trek: {data}")
+
+            # check even that assigned staff exists
+            assigned_staff_id = data.get("assigned_staff_id" , 9999999)
+            print(f"Received assigned_staff_id: {assigned_staff_id}")
+            if assigned_staff_id:
+                staff_member = StaffModel.query.filter_by(id=int(assigned_staff_id)).first()
+                if not staff_member:
+                    response = {
+                        "message": "The assigned staff member does not exist.",
+                    }
+                    return jsonify(response), 400
+
+            trek.assigned_staff_id = int(assigned_staff_id) if assigned_staff_id else None
+
+
+
+            trek.name = data.get("name", trek.name)
+            trek.location = data.get("location", trek.location)
+            trek.difficulty = TrekDifficulty(
+                data.get("difficulty", trek.difficulty.value)
+            )
+            trek.duration = int(data.get("duration", trek.duration))
+            trek.total_slots = int(data.get("totalSlots", trek.total_slots))
+            trek.available_slots = int(data.get("availableSlots", trek.available_slots))
+            trek.price = float(data.get("price", trek.price))
+            trek.image_url = data.get("imageUrl", trek.image_url)
+            trek.description = data.get("description", trek.description)
+            trek.starting_at = datetime.strptime(
+                data.get("startDate", trek.starting_at.strftime("%Y-%m-%d")), "%Y-%m-%d"
+            )
+            trek.ending_at = datetime.strptime(
+                data.get("endDate", trek.ending_at.strftime("%Y-%m-%d")), "%Y-%m-%d"
+            )
+
+
+
+            db.session.commit()
+            response = {
+                "message": "Trek updated successfully.",
+                "trek": {
+                    "id": trek.id,
+                    "name": trek.name,
+                    "location": trek.location,
+                    "difficulty": trek.difficulty.value,
+                    "total_slots": trek.total_slots,
+                    "available_slots": trek.available_slots,
+                    "price": trek.price,
+                    "image_url": trek.image_url,
+                    "description": trek.description,
+                    "starting_at": trek.starting_at.strftime("%Y-%m-%d"),
+                    "ending_at": trek.ending_at.strftime("%Y-%m-%d"),
+                    "assigned_staff_id": trek.assigned_staff_id,
+                },
+            }
+            return jsonify(response), 200
+
+        except Exception as e:
+            db.session.rollback()
+            print(f"Error occurred while updating the trek: {e}")
+            response = {
+                "message": "An error occurred while updating the trek.",
+            }
+            return jsonify(response), 500
+
+
+
+    
+    
+    
+# ManageStaff routes
+
+#get all staff members
+@admin_bp.route("/staffs", methods=["GET"])
+@jwt_required()
+@role_required(UserRole.ADMIN)
+def get_staffs():
+    
+
+    try:
+        user_staff = UserModel.query.filter_by(role = UserRole.STAFF).all()
+        
+        print(user_staff)
+        
+        staffs_JSON = [
+            {
+                "user_id": user.id,
+                "username": user.username,
+                "phone": user.phone,
+                "email": user.email,
+                "status": user.staff_profile.Profile_status.value,
+                "is_active": user.is_active,
+                "blacklisted_reason": user.blacklisted_reason,
+            }
+            for user in user_staff
+        ]
+        return jsonify({ "staffs": staffs_JSON }), 200
+        
+    except Exception as e:
+        print(f"Error occurred while fetching staff members: {e}")
+
+        response = {
+            "message": "An error occurred while fetching staff members.",
+        }
+        return jsonify(response), 500
+    
+    
+# Approve or Reject  or Blacklist or deBlacklist staff member
+@admin_bp.route("/staffs/<int:staff_id>/<string:status>", methods=["POST"])
+@jwt_required()
+@role_required(UserRole.ADMIN)
+def update_staff_status(staff_id, status):
+    try:
+        staff_user = UserModel.query.filter_by(id=staff_id, role=UserRole.STAFF).first()
+        if not staff_user:
+            response = {
+                "message": "Staff member not found.",
+            }
+            return jsonify(response), 404
+        
+        data = request.get_json(silent=True)
+        reason = data.get("reason") if data else None
+        
+
+        if status.lower() == StaffStatus.APPROVED.value.lower():
+            staff_user.staff_profile.Profile_status = StaffStatus.APPROVED
+            staff_user.is_active = True
+            staff_user.blacklisted_reason = None  
+        elif status.lower() == StaffStatus.REJECTED.value.lower():
+            staff_user.staff_profile.Profile_status = StaffStatus.REJECTED
+            staff_user.is_active = False
+        elif status.lower() == StaffStatus.BLACKLISTED.value.lower():
+            staff_user.staff_profile.Profile_status = StaffStatus.BLACKLISTED
+            staff_user.is_active = False
+            staff_user.blacklisted_reason = reason
+        elif status.lower() == StaffStatus.PENDING.value.lower():
+            staff_user.staff_profile.Profile_status = StaffStatus.PENDING
+            staff_user.is_active = False
+        else:
+            response = {
+                "message": "Invalid status. Use 'approve', 'reject', 'blacklist', or 'unblacklist'.",
+            }
+            return jsonify(response), 400
+
+        db.session.commit()
+
+        response = {
+            "message": f"Staff member {status}d successfully.",
+            "staff": {
+                "user_id": staff_user.id,
+                "username": staff_user.username,
+                "phone": staff_user.phone,
+                "email": staff_user.email,
+                "status": staff_user.staff_profile.Profile_status.value,
+                "is_active": staff_user.is_active,
+            },
+        }
+
+        return jsonify(response), 200
+
+    except Exception as e:
+        db.session.rollback()
+        print(f"Error occurred while updating staff status: {e}")
+        response = {
+            "message": "An error occurred while updating staff status.",
+        }
+        return jsonify(response), 500
+    
+

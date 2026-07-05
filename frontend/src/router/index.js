@@ -1,4 +1,5 @@
 
+import axiosInstance from '@/utils/axioUtil'
 import LoginView from '@/views/authView/loginView.vue'
 import RegisterView from '@/views/authView/registerView.vue'
 import HomeView from '@/views/homeview/homeView.vue'
@@ -44,6 +45,12 @@ const approuter = {
           name : "manageTreks" ,
           component: () => import("@/views/adminView/manageTrek.vue")
         }
+        , 
+        {
+          path : "staff" ,
+          name : "manageStaff" ,
+          component: () => import("@/views/adminView/manageStaff.vue")
+        }
       ]
     },
 
@@ -82,15 +89,29 @@ const approuter = {
 const router = createRouter(approuter)
 
 // prototected routes
-router.beforeEach((to, from, next) => {
-  const role = localStorage.getItem('role')
+router.beforeEach(async (to) => {
 
-  if (to.meta.requiresAuth && role !== to.meta.role) {
-    next({ name: 'login' })
-  } else {
-    next()
-  }
+    const token = localStorage.getItem("access_token")
+    const role = localStorage.getItem("role")
 
+    if (to.meta.requiresAuth && !token) {
+        return { name: "login" }
+    }
+
+    if (token) {
+        try {
+            await axiosInstance.get("/auth/authme")
+        } catch {
+            localStorage.clear()
+            return { name: "login" }
+        }
+    }
+
+    if (to.meta.requiresAuth && role !== to.meta.role) {
+        return { name: "login" }
+    }
+
+    return true
 })
 
 export default router

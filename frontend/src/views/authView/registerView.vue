@@ -1,6 +1,6 @@
 <script setup>
 import { reactive } from 'vue'
-import axiosInstance from '../../../utils/axioUtil'
+import axiosInstance from '../../utils/axioUtil'
 import { useFlashStore } from '@/stores/flashStore'
 import router from '@/router'
 

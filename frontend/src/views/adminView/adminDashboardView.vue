@@ -1,7 +1,7 @@
 <script setup>
 import Loader from '@/components/Loader.vue'
 import { useAdminStore } from '@/stores/adminStore'
-import { onMounted, onUnmounted } from 'vue'
+import { onMounted } from 'vue'
 
 const adminStore = useAdminStore()
 // console.log(adminStore)
@@ -10,15 +10,12 @@ onMounted(async () => {
   // console.log(adminStore.admin)
   console.log(adminStore.dashboardData)
 })
-onUnmounted(() => {
-  adminStore.resetAdminData()
-})
 </script>
 
 <template>
   <div>
     <!-- Loader -->
-    <div v-if="True">
+    <div v-if="adminStore.loadingAdmin">
       <Loader />
     </div>
 
@@ -41,7 +38,9 @@ onUnmounted(() => {
                 <div>
                   <h6 class="text-muted">Total Treks</h6>
 
-                  <h1 class="text-success fw-bold">{{ adminStore.dashboardData?.total_treks || 0 }}</h1>
+                  <h1 class="text-success fw-bold">
+                    {{ adminStore.dashboardData?.total_treks || 0 }}
+                  </h1>
 
                   <small class="text-success"> +3 this month </small>
                 </div>
@@ -59,7 +58,9 @@ onUnmounted(() => {
                 <div>
                   <h6 class="text-muted">Total Users</h6>
 
-                  <h1 class="text-success fw-bold">{{ adminStore.dashboardData?.total_trekkers || 0 }}</h1>
+                  <h1 class="text-success fw-bold">
+                    {{ adminStore.dashboardData?.total_trekkers || 0 }}
+                  </h1>
 
                   <small class="text-success"> +15 this month </small>
                 </div>
@@ -77,7 +78,9 @@ onUnmounted(() => {
                 <div>
                   <h6 class="text-muted">Total Staff</h6>
 
-                  <h1 class="text-success fw-bold">{{ adminStore.dashboardData?.total_staff || 0 }}</h1>
+                  <h1 class="text-success fw-bold">
+                    {{ adminStore.dashboardData?.total_staff || 0 }}
+                  </h1>
 
                   <small class="text-success"> +2 this month </small>
                 </div>
@@ -95,12 +98,74 @@ onUnmounted(() => {
                 <div>
                   <h6 class="text-muted">Total Bookings</h6>
 
-                  <h1 class="text-success fw-bold">{{ adminStore.dashboardData?.total_bookings || 0 }}</h1>
+                  <h1 class="text-success fw-bold">
+                    {{ adminStore.dashboardData?.total_bookings || 0 }}
+                  </h1>
 
                   <small class="text-success"> +20 this month </small>
                 </div>
 
                 <i class="bi bi-calendar-check fs-1 text-success"></i>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="col-md-6 col-lg-3">
+          <div class="card shadow-sm">
+            <div class="card-body">
+              <div class="d-flex justify-content-between">
+                <div>
+                  <h6 class="text-muted">Total Revenue</h6>
+
+                  <h1 class="text-success fw-bold">
+                    {{ adminStore.dashboardData?.total_revenue_till_data || 0 }}
+                  </h1>
+
+                  <small class="text-success"> +20 this month </small>
+                </div>
+
+                <i class="bi bi-calendar-check fs-1 text-success"></i>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="col-md-6 col-lg-3">
+          <div class="card shadow-sm">
+            <div class="card-body">
+              <div class="d-flex justify-content-between">
+                <div>
+                  <h6 class="text-muted">Total Approved Treks</h6>
+
+                  <h1 class="text-success fw-bold">
+                    {{ adminStore.dashboardData?.treks_approved || 0 }}
+                  </h1>
+
+                  <small class="text-success"> +20 this month </small>
+                </div>
+
+                <i class="bi bi-check2-circle fs-1 text-success"></i>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="col-md-6 col-lg-3">
+          <div class="card shadow-sm">
+            <div class="card-body">
+              <div class="d-flex justify-content-between">
+                <div>
+                  <h6 class="text-muted">Total Pending Treks</h6>
+
+                  <h1 class="text-success fw-bold">
+                    {{ adminStore.dashboardData?.treks_pending || 0 }}
+                  </h1>
+
+                  <small class="text-success"> +20 this month </small>
+                </div>
+
+                <i class="bi bi-ban fs-1 text-success"></i>
               </div>
             </div>
           </div>
@@ -127,7 +192,10 @@ onUnmounted(() => {
             </thead>
 
             <tbody>
-              <tr v-for="booking in adminStore.dashboardData?.recent_bookings || []" :key="booking.id">
+              <tr
+                v-for="booking in adminStore.dashboardData?.recent_bookings || []"
+                :key="booking.id"
+              >
                 <td>{{ booking.id }}</td>
                 <td>{{ booking.user.username }}</td>
                 <td>{{ booking.trek.name }}</td>
@@ -137,7 +205,6 @@ onUnmounted(() => {
                   <span class="badge bg-warning text-dark"> Booked </span>
                 </td>
               </tr>
-
             </tbody>
           </table>
         </div>

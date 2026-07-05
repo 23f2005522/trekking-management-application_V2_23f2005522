@@ -127,6 +127,6 @@
 </template>
 
 <script setup>
-import logout from '../../../utils/logout';
+import logout from '../../utils/logout';
 
 </script>

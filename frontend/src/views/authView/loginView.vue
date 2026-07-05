@@ -1,21 +1,21 @@
 <script setup>
 import { reactive } from 'vue'
 import router from '@/router'
-import axiosInstance from '../../../utils/axioUtil'
+import axiosInstance from '../../utils/axioUtil'
 import { useFlashStore } from '@/stores/flashStore'
-import { useUserStore } from '@/stores/userStore'
+
 
 const flashStore = useFlashStore()
-const userStore = useUserStore()
 const formData = reactive({
   email: '',
   password: '',
   role: 'trekker',
 })
 
-const handelLogin = async () => {
+const handelLogin = async (e) => {
+  e.preventDefault()
   try {
-    const {data} = await axiosInstance.post('/auth/login', formData)
+    const { data } = await axiosInstance.post('/auth/login', formData)
     console.log('Login successful:', data)
     // stting token in local storage
     localStorage.setItem('access_token', data.access_token)
@@ -52,7 +52,7 @@ const handelLogin = async () => {
 
             <p class="text-center text-muted mb-4">Login to continue</p>
 
-            <form @submit.prevent="handelLogin">
+            <form>
               <!-- Email -->
               <div class="mb-3">
                 <label class="form-label"> Email </label>

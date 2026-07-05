@@ -171,6 +171,14 @@ def logout():
     response = {"message": "Logout successful."}
     return jsonify(response), 200
 
+# to veriy the JWT token is valied
+@auth_bp.route("/authme", methods=["GET"])
+@jwt_required()
+def verify():
+
+    return jsonify({
+        "authenticated": True
+    }), 200
 
 # for testing the role_required decorator and JWT token
 # @auth_bp.route("/protected", methods=["GET"])
