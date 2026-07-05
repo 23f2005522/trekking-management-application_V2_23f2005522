@@ -1,5 +1,5 @@
 <script setup>
-import ManagaStaffModal from '@/components/managaStaffModal.vue'
+import ManageTrekkerModal from '@/components/manageTrekkerModal.vue'
 import { useFlashStore } from '@/stores/flashStore'
 import { userTrekkerStore } from '@/stores/trekkerStore'
 import { onMounted } from 'vue'
@@ -19,12 +19,14 @@ onMounted(() => {
 
 const handleTrekkerSelection = (id) => {
   console.log('Selected Trekker:', id)
+  TrekkerStore.selectedTrekkerId = id
 }
+
 </script>
 
 <template>
   <div class="col p-4">
-    <ManagaStaffModal />
+    <ManageTrekkerModal/>
 
     <!-- Heading -->
     <h1 class="fw-bold">Manage Trekkers</h1>
@@ -122,7 +124,7 @@ const handleTrekkerSelection = (id) => {
                   class="btn btn-primary btn-sm"
                   @click="handleTrekkerSelection(trekker.user_id)"
                   data-bs-toggle="modal"
-                  data-bs-target="#manageStaffModal"
+                  data-bs-target="#manageTrekkerModal"
                 >
                   <i class="bi bi-pencil"></i>
                 </button>
