@@ -32,7 +32,7 @@ class TrekStatus(str, Enum):
 # BookingStatus
 class BookingStatus(str, Enum):
     BOOKED = "booked"
-    COMPLETED = "comepleted"
+    COMPLETED = "completed"
     CANCELED = "canceled"
 
 

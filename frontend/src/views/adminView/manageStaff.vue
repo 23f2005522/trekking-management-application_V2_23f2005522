@@ -79,6 +79,7 @@ const handelStaffSelection = (staffId) => {
               <tr>
                 <th scope="col">ID</th>
                 <th scope="col">Name</th>
+                <th scope="col">PhoneNumber</th>
                 <th scope="col">Email</th>
                 <th scope="col">Status</th>
                 <th scope="col">Actions</th>
@@ -89,6 +90,7 @@ const handelStaffSelection = (staffId) => {
               <tr v-for="staff in staffStore.filteredStaffs" :key="staff.user_id">
                 <td>{{ staff.user_id }}</td>
                 <td>{{ staff.username }}</td>
+                <td>{{ staff.phone }}</td>
                 <td>{{ staff.email }}</td>
                 <td>
                   <span

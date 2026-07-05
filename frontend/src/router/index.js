@@ -39,25 +39,30 @@ const approuter = {
           name: 'admindashboard',
           component: () => import("@/views/adminView/adminDashboardView.vue")
         }
-        , 
+        ,
         {
-          path : "treks" , 
-          name : "manageTreks" ,
+          path: "treks",
+          name: "manageTreks",
           component: () => import("@/views/adminView/manageTrek.vue")
         }
-        , 
+        ,
         {
-          path : "staff" ,
-          name : "manageStaff" ,
+          path: "staff",
+          name: "manageStaff",
           component: () => import("@/views/adminView/manageStaff.vue")
         }
         ,
         {
-          path : "trekkers" ,
-          name : "manageTrekkers" ,
+          path: "trekkers",
+          name: "manageTrekkers",
           component: () => import("@/views/adminView/manageTrekkers.vue")
         }
         ,
+        {
+          path: "bookings",
+          name: "manageBookings",
+          component: () => import("@/views/adminView/manageBookings.vue")
+        }
 
       ]
     },
@@ -65,18 +70,18 @@ const approuter = {
 
     // Staff route
     {
-      path : '/staff/dashboard',
-      name : 'staffdashboard',
-      component : () => import("@/views/staffView/StaffView.vue"),
+      path: '/staff/dashboard',
+      name: 'staffdashboard',
+      component: () => import("@/views/staffView/StaffView.vue"),
       meta: { requiresAuth: true, role: 'staff' }
     },
 
 
     // Trekker route
     {
-      path : '/trekker/dashboard',
-      name : 'trekkerdashboard',
-      component : () => import("@/views/trekkerView/TrekkerView.vue"),
+      path: '/trekker/dashboard',
+      name: 'trekkerdashboard',
+      component: () => import("@/views/trekkerView/TrekkerView.vue"),
       meta: { requiresAuth: true, role: 'trekker' }
     },
 
@@ -99,27 +104,27 @@ const router = createRouter(approuter)
 // prototected routes
 router.beforeEach(async (to) => {
 
-    const token = localStorage.getItem("access_token")
-    const role = localStorage.getItem("role")
+  const token = localStorage.getItem("access_token")
+  const role = localStorage.getItem("role")
 
-    if (to.meta.requiresAuth && !token) {
-        return { name: "login" }
+  if (to.meta.requiresAuth && !token) {
+    return { name: "login" }
+  }
+
+  if (token) {
+    try {
+      await axiosInstance.get("/auth/authme")
+    } catch {
+      localStorage.clear()
+      return { name: "login" }
     }
+  }
 
-    if (token) {
-        try {
-            await axiosInstance.get("/auth/authme")
-        } catch {
-            localStorage.clear()
-            return { name: "login" }
-        }
-    }
+  if (to.meta.requiresAuth && role !== to.meta.role) {
+    return { name: "login" }
+  }
 
-    if (to.meta.requiresAuth && role !== to.meta.role) {
-        return { name: "login" }
-    }
-
-    return true
+  return true
 })
 
 export default router

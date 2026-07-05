@@ -107,7 +107,9 @@ def get_admin_data():
             return jsonify(response), 500
 
 
-# get all treks detalils
+# trek management routes
+
+# get all treks details
 @admin_bp.route("/treks", methods=["GET"])
 @jwt_required()
 @role_required(UserRole.ADMIN)
@@ -558,8 +560,49 @@ def update_trekker_status(trekker_id, action):
     
     
     
-    
-    
+
+#Booking routes
+
+# get all bookings
+@admin_bp.route("/bookings", methods=["GET"])
+@jwt_required()
+@role_required(UserRole.ADMIN)
+def get_bookings():
+    try:
+        bookings = BookingModel.query.order_by(BookingModel.booking_date.desc()).all()
+
+        bookings_JSON = [
+            {
+                "id": booking.id,
+                "user_id": booking.user_id,
+                "username": booking.user.username,
+                "user_email": booking.user.email,
+                "trek_id": booking.trek_id,
+                "trek_name": booking.trek.name,
+                "booking_date": booking.booking_date.strftime("%Y-%m-%d"),
+                "status": booking.status.value,
+                "payment_status": booking.payment_status.value,
+                "amount_paid": float(booking.amount_paid),
+                "booking_cancel_date": (
+                    booking.booking_cancel_date.strftime("%Y-%m-%d")
+                    if booking.booking_cancel_date else None
+                ),
+                "booking_cancel_reason": booking.booking_cancel_reason,
+            }
+            for booking in bookings
+        ]
+
+        return jsonify({
+            "message": "Bookings fetched successfully.",
+            "bookings": bookings_JSON,
+        }), 200
+
+    except Exception as e:
+        print(f"Error occurred while fetching bookings: {e}")
+        response = {
+            "message": "An error occurred while fetching bookings.",
+        }
+        return jsonify(response), 500
     
     
     

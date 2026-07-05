@@ -45,7 +45,7 @@ const handelLogin = async (e) => {
 <template>
   <div class="container py-5">
     <div class="row justify-content-center">
-      <div class="col-md-6 col-lg-5">
+    <div class="col-md-6 col-lg-5">
         <div class="card shadow-lg border-0 rounded-4">
           <div class="card-body p-5">
             <h2 class="text-center mb-4">Trekking Management System</h2>

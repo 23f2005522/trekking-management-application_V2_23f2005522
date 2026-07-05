@@ -133,6 +133,11 @@ def login():
                 "message": "Staff account has been rejected by the administrator."
             }
             return jsonify(response), 403
+        if user.staff_profile.Profile_status == StaffStatus.BLACKLISTED.value:
+            response = {
+                "message": "Staff account has been blacklisted by the administrator."
+            }
+            return jsonify(response), 403
 
     # Create a JWT token for the user
     access_token = create_access_token(

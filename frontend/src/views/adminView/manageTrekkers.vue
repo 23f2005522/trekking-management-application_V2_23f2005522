@@ -83,6 +83,7 @@ const handleTrekkerSelection = (id) => {
               <th>ID</th>
               <th>Name</th>
               <th>Email</th>
+              <th>Phone Number</th>
               <th>Account Status</th>
               <th>Activity</th>
               <th>Actions</th>
@@ -96,6 +97,7 @@ const handleTrekkerSelection = (id) => {
               <td>{{ trekker.username }}</td>
 
               <td>{{ trekker.email }}</td>
+              <td>{{ trekker.phone }}</td>
 
               <td>
                 <span
