@@ -2,10 +2,10 @@
 import FlashMessage from './components/flashMessage.vue';
 import Footer from './components/Footer.vue';
 import NavBar from './components/NavBar.vue';
-import { useUserStore } from './stores/userStore'
 
 
-const userStore = useUserStore()
+
+
 </script>
 
 <template>

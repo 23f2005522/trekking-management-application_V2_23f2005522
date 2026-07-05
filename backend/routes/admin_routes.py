@@ -457,3 +457,154 @@ def update_staff_status(staff_id, status):
         return jsonify(response), 500
     
 
+# Trekkers routes
+
+
+# get all trekkers
+@admin_bp.route("/trekkers", methods=["GET"])
+@jwt_required()
+@role_required(UserRole.ADMIN)
+def get_trekkers():
+    
+    try:
+        user_trekkers = UserModel.query.filter_by(role=UserRole.TREKKER).all()
+        
+        trekkers_JSON = [
+            {
+                "user_id": user.id,
+                "username": user.username,
+                "phone": user.phone,
+                "email": user.email,
+                "is_active": user.is_active,
+                "is_blacklisted": user.is_blacklisted,
+                "blacklisted_reason": user.blacklisted_reason,
+            }
+            for user in user_trekkers
+        ]
+        return jsonify({ "trekkers": trekkers_JSON }), 200
+        
+    except Exception as e:
+        print(f"Error occurred while fetching trekkers: {e}")
+
+        response = {
+            "message": "An error occurred while fetching trekkers.",
+        }
+        return jsonify(response), 500
+
+
+
+# Blacklist or deBlacklist trekker
+@admin_bp.route("/trekkers/<int:trekker_id>/<string:action>", methods=["POST"])
+@jwt_required()
+@role_required(UserRole.ADMIN)
+def update_trekker_status(trekker_id, action):
+    try:
+        trekker_user = UserModel.query.filter_by(id=trekker_id, role=UserRole.TREKKER).first()
+        if not trekker_user:
+            response = {
+                "message": "Trekker not found.",
+            }
+            return jsonify(response), 404
+        
+        data = request.get_json(silent=True)
+        reason = data.get("reason") if data else None
+        
+
+        if action.lower() == "blacklist":
+            trekker_user.is_blacklisted = True
+            trekker_user.is_active = False
+            trekker_user.blacklisted_reason = reason
+        elif action.lower() == "deblacklist":
+            trekker_user.is_blacklisted = False
+            trekker_user.is_active = True
+            trekker_user.blacklisted_reason = None  
+        else:
+            response = {
+                "message": "Invalid action. Use 'blacklist' or 'deblacklist'.",
+            }
+            return jsonify(response), 400
+
+        db.session.commit()
+
+        response = {
+            "message": f"Trekker {action}ed successfully.",
+            "trekker": {
+                "user_id": trekker_user.id,
+                "username": trekker_user.username,
+                "phone": trekker_user.phone,
+                "email": trekker_user.email,
+                "is_active": trekker_user.is_active,
+                "is_blacklisted": trekker_user.is_blacklisted,
+                "blacklisted_reason": trekker_user.blacklisted_reason,
+            },
+        }
+
+        return jsonify(response), 200
+
+    except Exception as e:
+        db.session.rollback()
+        print(f"Error occurred while updating trekker status: {e}")
+        response = {
+            "message": "An error occurred while updating trekker status.",
+        }
+        return jsonify(response), 500
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    

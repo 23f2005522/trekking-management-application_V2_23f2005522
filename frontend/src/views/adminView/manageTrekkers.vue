@@ -1,46 +1,24 @@
 <script setup>
 import ManagaStaffModal from '@/components/managaStaffModal.vue'
+import { useFlashStore } from '@/stores/flashStore'
+import { userTrekkerStore } from '@/stores/trekkerStore'
+import { onMounted } from 'vue'
 
-const trekkers = [
-  {
-    user_id: 1,
-    username: 'Anish Das',
-    email: 'anish@gmail.com',
-    status: 'active',
-    is_active: true,
-  },
-  {
-    user_id: 2,
-    username: 'Rahul Sharma',
-    email: 'rahul@gmail.com',
-    status: 'active',
-    is_active: true,
-  },
-  {
-    user_id: 3,
-    username: 'Priya Singh',
-    email: 'priya@gmail.com',
-    status: 'inactive',
-    is_active: false,
-  },
-  {
-    user_id: 4,
-    username: 'Amit Kumar',
-    email: 'amit@gmail.com',
-    status: 'active',
-    is_active: true,
-  },
-  {
-    user_id: 5,
-    username: 'Sneha Roy',
-    email: 'sneha@gmail.com',
-    status: 'inactive',
-    is_active: false,
-  },
-]
+
+
+const TrekkerStore = userTrekkerStore()
+const flashStore = useFlashStore()
+onMounted(() => {
+  try {
+    TrekkerStore.fetchAllTrekkers()
+    flashStore.show('Trekkers fetched successfully.', 'success')
+  } catch (error) {
+    flashStore.show('Error fetching trekkers.', 'danger')
+  }
+})
 
 const handleTrekkerSelection = (id) => {
-  console.log("Selected Trekker:", id)
+  console.log('Selected Trekker:', id)
 }
 </script>
 
@@ -51,9 +29,7 @@ const handleTrekkerSelection = (id) => {
     <!-- Heading -->
     <h1 class="fw-bold">Manage Trekkers</h1>
 
-    <p class="text-muted">
-      Review trekker accounts and manage their access.
-    </p>
+    <p class="text-muted">Review trekker accounts and manage their access.</p>
 
     <hr />
 
@@ -61,7 +37,6 @@ const handleTrekkerSelection = (id) => {
     <div class="card shadow-sm mb-4 border-0">
       <div class="card-body">
         <div class="row align-items-center">
-
           <div class="col-md-8">
             <div class="input-group">
               <span class="input-group-text bg-white border-end-0">
@@ -69,8 +44,9 @@ const handleTrekkerSelection = (id) => {
               </span>
 
               <input
+                v-model="TrekkerStore.trekkersearchQuery"
                 type="text"
-                class="form-control border-start-0"
+                class="form-control border-start-0" 
                 placeholder="Search by trekker name, email or ID..."
               />
             </div>
@@ -79,23 +55,27 @@ const handleTrekkerSelection = (id) => {
           <div class="col-md-4 text-end">
             <small class="text-muted">
               Showing
-              <strong>{{ trekkers.length }}</strong>
+              <strong>{{ TrekkerStore.filteredTrekkers.length }}</strong>
               of
-              <strong>{{ trekkers.length }}</strong>
+              <strong>{{ TrekkerStore.allTrekkers.length }}</strong>
               Trekkers
             </small>
           </div>
-
         </div>
       </div>
     </div>
 
     <!-- Table -->
     <div class="card shadow-sm border-0">
-      <div class="table-responsive">
 
+
+      <div v-if="TrekkerStore.filteredTrekkers.length <= 0" class="card-footer text-muted">
+
+        No trekkers found.
+      </div>
+
+        <div class="table-responsive" v-else> 
         <table class="table table-hover mb-0">
-
           <thead class="bg-success text-white">
             <tr>
               <th>ID</th>
@@ -108,11 +88,7 @@ const handleTrekkerSelection = (id) => {
           </thead>
 
           <tbody>
-
-            <tr
-              v-for="trekker in trekkers"
-              :key="trekker.user_id"
-            >
+            <tr v-for="trekker in TrekkerStore.filteredTrekkers" :key="trekker.user_id">
               <td>{{ trekker.user_id }}</td>
 
               <td>{{ trekker.username }}</td>
@@ -122,11 +98,11 @@ const handleTrekkerSelection = (id) => {
               <td>
                 <span
                   :class="{
-                    'badge bg-success p-2': trekker.status === 'active',
-                    'badge bg-danger p-2': trekker.status === 'inactive'
+                    'badge bg-success p-2': trekker.is_blacklisted === false,
+                    'badge bg-danger p-2': trekker.is_blacklisted === true,
                   }"
                 >
-                  {{ trekker.status }}
+                  {{ trekker.is_blacklisted ? 'Blacklisted' : "Active" }}
                 </span>
               </td>
 
@@ -134,10 +110,10 @@ const handleTrekkerSelection = (id) => {
                 <span
                   :class="{
                     'badge bg-success': trekker.is_active,
-                    'badge bg-secondary': !trekker.is_active
+                    'badge bg-secondary': !trekker.is_active,
                   }"
                 >
-                  {{ trekker.is_active ? "Active" : "Inactive" }}
+                  {{ trekker.is_active ? 'Active' : 'Inactive' }}
                 </span>
               </td>
 
@@ -151,20 +127,16 @@ const handleTrekkerSelection = (id) => {
                   <i class="bi bi-pencil"></i>
                 </button>
               </td>
-
             </tr>
 
-            <tr v-if="trekkers.length === 0">
-              <td colspan="6" class="text-center text-muted py-4">
-                No trekkers found.
-              </td>
+            <tr v-if="TrekkerStore.filteredTrekkers.length === 0">
+              <td colspan="6" class="text-center text-muted py-4">No trekkers found.</td>
             </tr>
-
           </tbody>
-
         </table>
-
       </div>
+
+
     </div>
   </div>
 </template>
