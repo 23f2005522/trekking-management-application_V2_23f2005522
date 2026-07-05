@@ -57,6 +57,8 @@ const approuter = {
           name : "manageTrekkers" ,
           component: () => import("@/views/adminView/manageTrekkers.vue")
         }
+        ,
+
       ]
     },
 

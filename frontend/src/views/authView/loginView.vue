@@ -1,118 +1,150 @@
 <script setup>
-import { useStaffStore } from '@/stores/staffStore'
-import { ref, watch } from 'vue'
+import { reactive } from 'vue'
+import router from '@/router'
+import axiosInstance from '../../utils/axioUtil'
+import { useFlashStore } from '@/stores/flashStore'
 
-const staffStore = useStaffStore()
 
-const selectedStatus = ref('')
-const reason = ref('')
+const flashStore = useFlashStore()
+const formData = reactive({
+  email: '',
+  password: '',
+  role: 'trekker',
+})
 
-watch(
-  () => staffStore.selectedStaff,
-  (newVal) => {
-    if (!newVal) {
-      selectedStatus.value = ''
-      reason.value = ''
-    } else {
-      selectedStatus.value = newVal.status
-      reason.value = newVal.blacklisted_reason || ''
+const handelLogin = async (e) => {
+  e.preventDefault()
+  try {
+    const { data } = await axiosInstance.post('/auth/login', formData)
+    console.log('Login successful:', data)
+    // stting token in local storage
+    localStorage.setItem('access_token', data.access_token)
+    localStorage.setItem('role', data.role)
+    localStorage.setItem('username', data.username)
+
+    // set the user in the userStore
+    console.log(data)
+
+    // Redirect based on role
+    const routeMap = {
+      trekker: '/trekker/dashboard',
+      staff: '/staff/dashboard',
+      admin: '/admin/dashboard',
     }
-  },
-  { immediate: true },
-)
+
+    router.push(routeMap[data.role] || '/')
+
+    return data
+
+  } catch (error) {
+    flashStore.show(error?.response?.data?.message || 'Login failed', 'error')
+  }
+}
 </script>
 
 <template>
-  <div class="modal fade" id="manageStaffModal" tabindex="-1">
-    <div class="modal-dialog modal-dialog-centered">
-      <div class="modal-content">
-        <div class="modal-header bg-success text-white">
-          <h5 class="modal-title">Manage Staff</h5>
+  <div class="container py-5">
+    <div class="row justify-content-center">
+      <div class="col-md-6 col-lg-5">
+        <div class="card shadow-lg border-0 rounded-4">
+          <div class="card-body p-5">
+            <h2 class="text-center mb-4">Trekking Management System</h2>
 
-          <button class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
-        </div>
+            <p class="text-center text-muted mb-4">Login to continue</p>
 
-        <div class="modal-body" v-if="staffStore.selectedStaff">
-          <div class="card bg-light mb-4">
-            <div class="card-body">
-              <h5>
-                {{ staffStore.selectedStaff.username }}
-              </h5>
+            <form>
+              <!-- Email -->
+              <div class="mb-3">
+                <label class="form-label"> Email </label>
 
-              <p class="text-muted">
-                {{ staffStore.selectedStaff.email }}
-              </p>
+                <input
+                  type="email"
+                  class="form-control"
+                  placeholder="Enter your email"
+                  v-model="formData.email"
+                />
+              </div>
 
-              <span
-                class="badge"
-                :class="{
-                  'bg-success': staffStore.selectedStaff.status === 'approved',
-                  'bg-warning text-dark': staffStore.selectedStaff.status === 'pending',
-                  'bg-danger': staffStore.selectedStaff.status === 'rejected',
-                  'bg-dark': staffStore.selectedStaff.status === 'blacklisted',
-                }"
-              >
-                Current :
-                {{ staffStore.selectedStaff.status }}
-              </span>
-            </div>
+              <!-- Password -->
+              <div class="mb-4">
+                <label class="form-label"> Password </label>
+
+                <input
+                  type="password"
+                  class="form-control"
+                  placeholder="Enter your password"
+                  v-model="formData.password"
+                />
+              </div>
+
+              <!-- Role -->
+              <div class="mb-4">
+                <label class="form-label fw-bold"> Choose your role </label>
+
+                <div class="form-check">
+                  <input
+                    class="form-check-input"
+                    type="radio"
+                    name="role"
+                    id="trekker"
+                    value="trekker"
+                    v-model="formData.role"
+                  />
+
+                  <label class="form-check-label" for="trekker"> Trekker </label>
+                </div>
+
+                <div class="form-check">
+                  <input
+                    class="form-check-input"
+                    type="radio"
+                    name="role"
+                    id="staff"
+                    value="staff"
+                    v-model="formData.role"
+                  />
+
+                  <label class="form-check-label" for="staff"> Trek Staff </label>
+                </div>
+
+                <div class="form-check">
+                  <input
+                    class="form-check-input"
+                    type="radio"
+                    name="role"
+                    id="admin"
+                    value="admin"
+                    v-model="formData.role"
+                  />
+
+                  <label class="form-check-label" for="admin"> Admin </label>
+                </div>
+              </div>
+
+              <!-- Login Button -->
+
+              <button @click="handelLogin" type="submit" class="btn btn-success w-100 py-2">
+                Login
+              </button>
+            </form>
+
+            <hr />
+
+            <p class="text-center mb-0">
+              Don't have an account?
+
+              <router-link to="/register"> Register Here </router-link>
+            </p>
           </div>
-
-          <label class="fw-semibold mb-2"> Change Status </label>
-
-          <div class="form-check">
-            <input class="form-check-input" type="radio" value="pending" v-model="selectedStatus" />
-            <label class="form-check-label"> Pending </label>
-          </div>
-
-          <div class="form-check">
-            <input
-              class="form-check-input"
-              type="radio"
-              value="approved"
-              v-model="selectedStatus"
-            />
-            <label class="form-check-label text-success"> Approved </label>
-          </div>
-
-          <div class="form-check">
-            <input
-              class="form-check-input"
-              type="radio"
-              value="rejected"
-              v-model="selectedStatus"
-            />
-            <label class="form-check-label text-danger"> Rejected </label>
-          </div>
-
-          <div class="form-check mb-3">
-            <input
-              class="form-check-input"
-              type="radio"
-              value="blacklisted"
-              v-model="selectedStatus"
-            />
-            <label class="form-check-label"> Blacklisted </label>
-          </div>
-
-          <label class="fw-semibold"> Reason </label>
-
-          <textarea rows="4" class="form-control" v-model="reason" />
-        </div>
-
-        <div v-else class="modal-body text-center">Loading...</div>
-
-        <div class="modal-footer">
-          <button class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-
-          <button
-            class="btn btn-success"
-            @click="staffStore.handelEditStaff(staffStore.selectedStaffId, selectedStatus, reason)"
-          >
-            Save Changes
-          </button>
         </div>
       </div>
     </div>
   </div>
 </template>
+
+<style scoped>
+.card {
+  max-width: 520px;
+  margin: auto;
+}
+</style>
