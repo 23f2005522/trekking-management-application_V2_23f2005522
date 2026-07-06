@@ -181,12 +181,23 @@ watch(
                       class="form-control"
                     />
                   </div>
+
+                  <!-- Status -->
+                  <div class="col-md-6">
+                    <label class="form-label">Status</label>
+
+                    <select v-model="trekStore.editingTrek.status" class="form-select">
+                      <option value="pending">Pending</option>
+                      <option value="approved">Approved</option>
+                    </select>
+
+                    <small class="text-muted"> Keep Pending until every detail is verified. </small>
+                  </div>
+
+                  
                 </div>
               </form>
             </div>
-
-
-
 
             <div class="modal-footer">
               <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
@@ -194,8 +205,7 @@ watch(
               <button
                 type="button"
                 class="btn btn-success"
-                @click="trekStore.updateTrek(trekStore.editingTrek.id , trekStore.editingTrek)"
-                
+                @click="trekStore.updateTrek(trekStore.editingTrek.id, trekStore.editingTrek)"
               >
                 <span
                   v-if="trekStore.savingTrek"
@@ -204,11 +214,6 @@ watch(
                 Save Trek
               </button>
             </div>
-
-
-
-
-
           </div>
         </div>
       </div>
