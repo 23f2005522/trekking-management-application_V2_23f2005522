@@ -96,10 +96,37 @@ const approuter = {
 
     // Trekker route
     {
-      path: '/trekker/dashboard',
-      name: 'trekkerdashboard',
+      path: '/trekker',
+      name: 'trekkerView',
       component: () => import("@/views/trekkerView/TrekkerView.vue"),
-      meta: { requiresAuth: true, role: 'trekker' }
+      meta: { requiresAuth: true, role: 'trekker' },
+      children: [
+        {
+          path: 'dashboard',
+          name: 'trekkerdashboard',
+          component: () => import("@/views/trekkerView/TrekkerDashboard.vue")
+        },
+        {
+          path: 'treks',
+          name: 'trekkerTreks',
+          component: () => import("@/views/trekkerView/TrekkerTreks.vue")
+        },
+        {
+          path: 'bookings',
+          name: 'trekkerBookings',
+          component: () => import("@/views/trekkerView/TrekkerBookings.vue")
+        },
+        {
+          path: 'history',
+          name: 'trekkerHistory',
+          component: () => import("@/views/trekkerView/TrekkerHistory.vue")
+        },
+        {
+          path: 'profile',
+          name: 'trekkerProfile',
+          component: () => import("@/views/trekkerView/TrekkerProfile.vue")
+        }
+      ]
     },
 
 
