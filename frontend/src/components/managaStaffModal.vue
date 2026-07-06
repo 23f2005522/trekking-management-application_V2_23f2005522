@@ -1,7 +1,23 @@
 <script setup>
-import { useStaffStore } from '@/stores/staffStore'
+import { onMounted, onUnmounted } from 'vue'
+import { useStaffStore } from '@/stores/admin/staffStore'
+import { hideBootstrapModal, registerModalCleanup } from '@/utils/bootstrapModal'
 
 const staffStore = useStaffStore()
+let cleanupModal = () => {}
+
+onMounted(() => {
+  cleanupModal = registerModalCleanup('manageStaffModal')
+})
+
+onUnmounted(() => {
+  cleanupModal()
+})
+
+const handleSaveChanges = async () => {
+  await staffStore.handelEditStaff()
+  hideBootstrapModal('manageStaffModal')
+}
 </script>
 
 <template>
@@ -92,7 +108,7 @@ const staffStore = useStaffStore()
         <div class="modal-footer">
           <button class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
 
-          <button class="btn btn-success" @click="staffStore.handelEditStaff()">
+          <button class="btn btn-success" @click="handleSaveChanges">
             Save Changes
           </button>
         </div>

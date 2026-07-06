@@ -1,6 +1,6 @@
 <script setup>
 import Loader from '@/components/Loader.vue'
-import { useAdminStore } from '@/stores/adminStore'
+import { useAdminStore } from '@/stores/admin/adminStore'
 import { onMounted } from 'vue'
 
 const adminStore = useAdminStore()

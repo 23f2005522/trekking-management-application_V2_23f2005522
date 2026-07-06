@@ -2,9 +2,24 @@
 import AddTrekModal from '@/components/addTrekModal.vue'
 import DeleteTrekModal from '@/components/deleteTrekModal.vue'
 import EditTrekModal from '@/components/editTrekModal.vue'
-import { useTrekStore } from '@/stores/trekStore'
+import { useTrekStore } from '@/stores/admin/trekStore'
 import { onMounted, ref } from 'vue'
 const trekStore = useTrekStore()
+
+const getStatusBadgeClass = (status) => {
+  const normalizedStatus = String(status || '').toLowerCase()
+
+  const statusClassMap = {
+    open: 'bg-success',
+    pending: 'bg-danger',
+    ongoing: 'bg-warning text-dark',
+    closed: 'bg-secondary',
+    completed: 'bg-primary',
+    approved: 'bg-info text-dark',
+  }
+
+  return statusClassMap[normalizedStatus] || 'bg-secondary'
+}
 
 onMounted(() => {
   trekStore.fetchTreks()
@@ -112,7 +127,7 @@ const handleDelete = (id) => {
               <td>{{ trek.availableSlots }}</td>
 
               <td>
-                <span :class="['badge', trek.status === 'approved' ? 'bg-success' : 'bg-danger']">
+                <span :class="['badge text-uppercase', getStatusBadgeClass(trek.status)]">
                   {{ trek.status }}
                 </span>
               </td>

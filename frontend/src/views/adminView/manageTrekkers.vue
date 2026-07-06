@@ -1,7 +1,7 @@
 <script setup>
 import ManageTrekkerModal from '@/components/manageTrekkerModal.vue'
 import { useFlashStore } from '@/stores/flashStore'
-import { userTrekkerStore } from '@/stores/trekkerStore'
+import { userTrekkerStore } from '@/stores/admin/trekkerStore'
 import { onMounted } from 'vue'
 
 

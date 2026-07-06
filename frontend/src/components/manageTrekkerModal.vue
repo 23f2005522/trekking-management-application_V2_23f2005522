@@ -1,6 +1,6 @@
 <script setup>
 import { ref, watch } from 'vue'
-import { userTrekkerStore } from '@/stores/trekkerStore'
+import { userTrekkerStore } from '@/stores/admin/trekkerStore'
 
 const trekkerStore = userTrekkerStore()
 

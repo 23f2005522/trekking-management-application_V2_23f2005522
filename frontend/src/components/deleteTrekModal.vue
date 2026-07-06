@@ -1,5 +1,7 @@
 <script setup>
-import { useTrekStore } from '@/stores/trekStore'
+import { onMounted, onUnmounted } from 'vue'
+import { useTrekStore } from '@/stores/admin/trekStore'
+import { hideBootstrapModal, registerModalCleanup } from '@/utils/bootstrapModal'
 
 
 const props = defineProps({
@@ -12,6 +14,22 @@ const props = defineProps({
 
 
 const trekStore = useTrekStore()
+let cleanupModal = () => {}
+
+onMounted(() => {
+  cleanupModal = registerModalCleanup('deleteTrekModal')
+})
+
+onUnmounted(() => {
+  cleanupModal()
+})
+
+const handleDelete = async () => {
+  if (!props.trekId) return
+
+  await trekStore.deleteTrek(props.trekId)
+  hideBootstrapModal('deleteTrekModal')
+}
 
 
 </script>
@@ -38,7 +56,7 @@ const trekStore = useTrekStore()
         <div class="modal-body">Are you sure you want to delete this trek?</div>
         <div class="modal-footer">
           <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-          <button type="button" class="btn btn-danger" @click="trekStore.deleteTrek(props.trekId)">Delete</button>
+          <button type="button" class="btn btn-danger" @click="handleDelete">Delete</button>
         </div>
       </div>
     </div>

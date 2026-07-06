@@ -1,12 +1,14 @@
 <script setup>
 import { Modal } from 'bootstrap'
-import { useTrekStore } from '@/stores/trekStore'
-import { ref } from 'vue'
+import { useTrekStore } from '@/stores/admin/trekStore'
+import { onMounted, onUnmounted, ref } from 'vue'
 import axiosInstance from '../utils/axioUtil'
 import { useFlashStore } from '@/stores/flashStore'
+import { hideBootstrapModal, registerModalCleanup } from '@/utils/bootstrapModal'
 
 const trekStore = useTrekStore()
 const flashStore = useFlashStore()
+let cleanupModal = () => {}
 const fromData = ref({
   name: '',
   location: '',
@@ -20,6 +22,15 @@ const fromData = ref({
   endDate: '',
   assignedStaffId: '',
 })
+
+onMounted(() => {
+  cleanupModal = registerModalCleanup('addNewTrekModal')
+})
+
+onUnmounted(() => {
+  cleanupModal()
+})
+
 const handleAddTrek = async (e) => {
   e.preventDefault()
   console.log(fromData.value)
@@ -27,13 +38,7 @@ const handleAddTrek = async (e) => {
     await axiosInstance.post('/admin/addtrek', fromData.value)
     trekStore.fetchTreks()
     flashStore.show('Trek added successfully', 'success')
-
-    // Close the modal
-    const modalElement = document.getElementById('addNewTrekModal')
-    const modalInstance = Modal.getOrCreateInstance(modalElement)
-    if (modalInstance) {
-      modalInstance.hide()
-    }
+    hideBootstrapModal('addNewTrekModal')
   } catch (error) {
     flashStore.show(error?.response?.data?.message || 'Failed to add trek', 'error')
   }
@@ -143,7 +148,7 @@ const handleAddTrek = async (e) => {
                 <label class="form-label">Image URL</label>
 
                 <input
-                  v-model="fromData.imageURL"
+                  v-model="fromData.imageUrl"
                   type="url"
                   class="form-control"
                   placeholder="https://example.com/image.jpg"

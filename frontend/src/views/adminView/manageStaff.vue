@@ -1,12 +1,12 @@
 <script setup>
 import { onMounted, ref } from 'vue'
-import { useStaffStore } from '@/stores/staffStore'
+import { useStaffStore } from '@/stores/admin/staffStore'
 import ManagaStaffModal from '@/components/managaStaffModal.vue'
 
 const staffStore = useStaffStore()
 
 onMounted(() => {
-  staffStore.allFetchStaffs()
+  staffStore.allFetchStaffs?.() ?? staffStore.fetchStaffs?.()
 })
 
 
@@ -55,11 +55,11 @@ const handelStaffSelection = (staffId) => {
               <small class="text-muted">
                 Showing
 
-                <strong>{{ staffStore.filteredStaffs.length || 0 }}</strong>
+                <strong>{{ staffStore.filteredStaffs?.length ?? 0 }}</strong>
 
                 of
 
-                <strong>{{ staffStore.allStaffs.length || 0 }}</strong>
+                <strong>{{ staffStore.allStaffs?.length ?? 0 }}</strong>
 
                 Staffs
               </small>
@@ -77,7 +77,8 @@ const handelStaffSelection = (staffId) => {
           <table class="table table-hover mb-0">
             <thead class="bg-success text-white">
               <tr>
-                <th scope="col">ID</th>
+                <th scope="col">UserID</th>
+                <th scope="col">StaffID</th>
                 <th scope="col">Name</th>
                 <th scope="col">PhoneNumber</th>
                 <th scope="col">Email</th>
@@ -89,6 +90,7 @@ const handelStaffSelection = (staffId) => {
             <tbody>
               <tr v-for="staff in staffStore.filteredStaffs" :key="staff.user_id">
                 <td>{{ staff.user_id }}</td>
+                <td>{{ staff.staff_id }}</td>
                 <td>{{ staff.username }}</td>
                 <td>{{ staff.phone }}</td>
                 <td>{{ staff.email }}</td>
@@ -131,7 +133,7 @@ const handelStaffSelection = (staffId) => {
               </tr>
 
               <!-- No Staffs Found -->
-              <tr v-if="staffStore.filteredStaffs.length === 0">
+              <tr v-if="(staffStore.filteredStaffs?.length ?? 0) === 0">
                 <td colspan="5" class="text-center text-muted py-4">No staffs found.</td>
               </tr>
             </tbody>

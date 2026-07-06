@@ -1,6 +1,7 @@
 <script setup>
-import { watch } from 'vue'
-import { useTrekStore } from '@/stores/trekStore'
+import { onMounted, onUnmounted, watch } from 'vue'
+import { useTrekStore } from '@/stores/admin/trekStore'
+import { hideBootstrapModal, registerModalCleanup } from '@/utils/bootstrapModal'
 
 const props = defineProps({
   trekId: {
@@ -11,6 +12,22 @@ const props = defineProps({
 })
 
 const trekStore = useTrekStore()
+let cleanupModal = () => {}
+
+onMounted(() => {
+  cleanupModal = registerModalCleanup('editTrekModal')
+})
+
+onUnmounted(() => {
+  cleanupModal()
+})
+
+const handleSaveTrek = async () => {
+  if (!trekStore.editingTrek) return
+
+  await trekStore.updateTrek(trekStore.editingTrek.id, trekStore.editingTrek)
+  hideBootstrapModal('editTrekModal')
+}
 
 //selectedTrekIdAndFire
 watch(
@@ -194,7 +211,7 @@ watch(
                     <small class="text-muted"> Keep Pending until every detail is verified. </small>
                   </div>
 
-                  
+
                 </div>
               </form>
             </div>
@@ -205,7 +222,7 @@ watch(
               <button
                 type="button"
                 class="btn btn-success"
-                @click="trekStore.updateTrek(trekStore.editingTrek.id, trekStore.editingTrek)"
+                @click="handleSaveTrek"
               >
                 <span
                   v-if="trekStore.savingTrek"

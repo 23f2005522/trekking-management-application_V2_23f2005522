@@ -1,6 +1,6 @@
 <script setup>
 import { onMounted } from 'vue'
-import { useBookingStore } from '@/stores/bookingStore'
+import { useBookingStore } from '@/stores/admin/bookingStore'
 
 const bookingStore = useBookingStore()
 
