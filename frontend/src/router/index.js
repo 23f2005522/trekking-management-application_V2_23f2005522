@@ -70,10 +70,27 @@ const approuter = {
 
     // Staff route
     {
-      path: '/staff/dashboard',
-      name: 'staffdashboard',
+      path: '/staff',
+      name: 'staffView',
       component: () => import("@/views/staffView/StaffView.vue"),
-      meta: { requiresAuth: true, role: 'staff' }
+      meta: { requiresAuth: true, role: 'staff' }, 
+      children: [
+        {
+          path: 'dashboard',
+          name: 'staffdashboard',
+          component: () => import("@/views/staffView/staffDashboardView.vue")
+        },
+        {
+          path: 'my-treks',
+          name: 'staffMyTreks',
+          component: () => import("@/views/staffView/StaffManageTreks.vue")
+        },
+        {
+          path: 'participants',
+          name: 'staffParticipants',
+          component: () => import("@/views/staffView/StaffParticipants.vue")
+        }
+      ]
     },
 
 

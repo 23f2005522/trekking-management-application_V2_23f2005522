@@ -155,6 +155,7 @@ def get_treks():
 def add_trek():
     try:
         data = request.get_json(silent=True)
+
         name = data.get("name") if data else None
         location = data.get("location") if data else None
         difficulty = data.get("difficulty") if data else None
@@ -166,7 +167,11 @@ def add_trek():
         startDate = data.get("startDate") if data else None
         endDate = data.get("endDate") if data else None
         assignedStaffId = data.get("assignedStaffId") if data else None
-        status = TrekStatus.TrekStatus.APPROVED if data.get("status") == TrekStatus.TrekStatus.APPROVED.value else TrekStatus.TrekStatus.PENDING
+        status = (
+            TrekStatus.APPROVED
+            if data.get("status") == TrekStatus.APPROVED.value
+            else TrekStatus.PENDING
+        )
 
 
         # same trek cant be added before the previous trek is completed
@@ -179,9 +184,7 @@ def add_trek():
 
         # check even that assigned staff exists
         if assignedStaffId:
-            staff_member = StaffModel.query.filter_by(
-                id=assignedStaffId, role=UserRole.STAFF
-            ).first()
+            staff_member = StaffModel.query.filter_by(id=int(assignedStaffId)).first()
             if not staff_member:
                 response = {
                     "message": "The assigned staff member does not exist.",
@@ -301,9 +304,7 @@ def edit_trek(trek_id):
             assigned_staff_id = data.get("assigned_staff_id", 9999999)
             print(f"Received assigned_staff_id: {assigned_staff_id}")
             if assigned_staff_id:
-                staff_member = StaffModel.query.filter_by(
-                    id=int(assigned_staff_id)
-                ).first()
+                staff_member = StaffModel.query.filter_by(id=int(assigned_staff_id)).first()
                 if not staff_member:
                     response = {
                         "message": "The assigned staff member does not exist.",
@@ -380,6 +381,7 @@ def get_staffs():
         staffs_JSON = [
             {
                 "user_id": user.id,
+                "staff_id": user.staff_profile.id,
                 "username": user.username,
                 "phone": user.phone,
                 "email": user.email,
