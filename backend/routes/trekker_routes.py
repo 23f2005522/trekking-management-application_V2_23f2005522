@@ -22,6 +22,7 @@ def trek_serializer(trek):
         "starting_date": trek.starting_at.strftime("%Y-%m-%d"),
         "ending_date": trek.ending_at.strftime("%Y-%m-%d"),
         "status": trek.status.value if trek.status else None,
+        "description": trek.description
     }
 
 
@@ -219,35 +220,50 @@ def get_trekker_profile():
 @jwt_required()
 @role_required(UserRole.TREKKER)
 def get_treks():
+   
+    try:
+        query = TrekModel.query.filter(
+            TrekModel.status.in_([TrekStatus.OPEN, TrekStatus.ONGOING])
+        )
 
-    query = TrekModel.query.filter(
-        TrekModel.status.in_([TrekStatus.OPEN, TrekStatus.ONGOING])
-    )
 
-    difficulty = request.args.get("difficulty")
-    location = request.args.get("location")
-    duration = request.args.get("duration")
-    search = request.args.get("search")
+        difficulty = request.args.get("difficulty")
+        location = request.args.get("location")
+        duration = request.args.get("duration")
+        search = request.args.get("search")
 
-    if difficulty:
-        query = query.filter(TrekModel.difficulty == difficulty)
+        if difficulty:
+            query = query.filter(TrekModel.difficulty == difficulty)
 
-    if location:
-        query = query.filter(TrekModel.location == location)
+        if location:
+            query = query.filter(TrekModel.location == location)
 
-    if duration:
-        query = query.filter(TrekModel.duration == duration)
+        if duration:
+            query = query.filter(TrekModel.duration == duration)
 
-    if search:
-        query = query.filter(TrekModel.name.contains(search))
+        if search:
+            query = query.filter(TrekModel.name.contains(search))
 
-    treks = query.order_by(TrekModel.created_at.desc()).all()
+        treks = query.order_by(TrekModel.created_at.desc()).all()
 
-    treks_json = [
-        trek_serializer(trek)
-        for trek in treks
-    ]
+        treks_json = [
+            trek_serializer(trek)
+            for trek in treks
+        ]
+        
+        response = {
+            "message": "Treks fetched successfully.",
+            "treks": treks_json,
+        }
+        
+        return jsonify(response), 200
 
+    except Exception as e:
+        print(f"Error occurred while fetching treks: {e}")
+        return (
+            jsonify({"message": "An error occurred while fetching treks."}),
+            500,
+        )
 
 @trekker_bp.route("/treks/<int:trek_id>", methods=["GET"])
 @jwt_required()

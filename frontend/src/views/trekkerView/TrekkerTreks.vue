@@ -1,73 +1,91 @@
 <script setup>
-const treks = [
-  {
-    id: 1,
-    name: 'Everest Base Camp',
-    location: 'Nepal',
-    difficulty: 'Hard',
-    duration: '12 Days',
-    slotsLeft: 8,
-    image: 'https://images.unsplash.com/photo-1486911278844-a81c5267e227?auto=format&fit=crop&w=700&q=80',
-  },
-  {
-    id: 2,
-    name: 'Roopkund Trek',
-    location: 'Uttarakhand',
-    difficulty: 'Moderate',
-    duration: '7 Days',
-    slotsLeft: 7,
-    image: 'https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?auto=format&fit=crop&w=700&q=80',
-  },
-  {
-    id: 3,
-    name: 'Hampta Pass',
-    location: 'Himachal',
-    difficulty: 'Moderate',
-    duration: '5 Days',
-    slotsLeft: 0,
-    image: 'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?auto=format&fit=crop&w=700&q=80',
-  },
-]
+import { onMounted } from 'vue'
+import { useTrekStore } from '@/stores/trekker/trekStore' // Ensure this matches your store's export and file name!
+import Loader from '@/components/Loader.vue'
+import BookingModal from '@/components/BookingModal.vue'
+
+// Initialize your store
+const trekStore = useTrekStore()
+
+// Fetch treks when the component mounts
+onMounted(() => {
+  trekStore.fetchTreks()
+})
+
+function openBookingModal(trek) {
+  trekStore.selectedTrek = trek
+  console.log('Opening modal for:', trek.name)
+  // Add your modal triggering logic here (e.g., Bootstrap modal show toggles)
+}
 </script>
 
 <template>
   <div>
-    <div class="d-flex flex-wrap gap-3 mb-4">
-      <input type="text" class="form-control" placeholder="Search treks..." style="max-width: 320px;" />
+    <!-- Booking Modal -->
+    <BookingModal />
 
-      <select class="form-select" style="max-width: 180px;">
-        <option>Difficulty: All</option>
-        <option>Easy</option>
-        <option>Moderate</option>
-        <option>Hard</option>
+    <div class="d-flex flex-wrap gap-3 mb-4">
+      <input
+        type="text"
+        class="form-control"
+        placeholder="Search treks Names..."
+        v-model="trekStore.filters.search"
+        style="max-width: 320px"
+      />
+
+      <select v-model="trekStore.filters.difficulty" class="form-select" style="max-width: 180px">
+        <option value="">Difficulty: All</option>
+        <option value="easy">Easy</option>
+        <option value="moderate">Moderate</option>
+        <option value="hard">Hard</option>
       </select>
 
-      <select class="form-select" style="max-width: 180px;">
-        <option>Location: All</option>
-        <option>Nepal</option>
-        <option>Uttarakhand</option>
-        <option>Himachal</option>
+      <select v-model="trekStore.filters.location" class="form-select" style="max-width: 180px">
+        <option value="">Location: All</option>
+        <option value="Nepal">Nepal</option>
+        <option value="Uttarakhand">Uttarakhand</option>
+        <option value="Himachal">Himachal</option>
+      </select>
+
+      <select v-model="trekStore.filters.duration" class="form-select" style="max-width: 180px">
+        <option value="">Duration: All</option>
+        <option value="3">3 Days</option>
+        <option value="5">5 Days</option>
+        <option value="8">8 Days</option>
       </select>
     </div>
 
-    <div class="row g-4">
-      <div v-for="trek in treks" :key="trek.id" class="col-12 col-md-6 col-xl-4">
+    <div v-if="trekStore.loadingTreks" class="text-center my-5">
+      <Loader />
+    </div>
+
+    <div v-else class="row g-4">
+      <div v-for="trek in trekStore.availableTreks" :key="trek.id" class="col-12 col-md-6 col-xl-4">
         <div class="card h-100 shadow-sm">
-          <img :src="trek.image" class="card-img-top trek-image" :alt="trek.name" />
+          <img
+            :src="
+              trek.image ||
+              'https://developers.elementor.com/docs/assets/img/elementor-placeholder-image.png'
+            "
+            class="card-img-top trek-image"
+            :alt="trek.name"
+          />
 
           <div class="card-body">
             <h5 class="fw-bold mb-3">{{ trek.name }}</h5>
-            <p class="mb-2">{{ trek.location }}</p>
-            <p class="mb-2">{{ trek.difficulty }}</p>
-            <p class="mb-2">{{ trek.duration }}</p>
-            <p class="mb-3">Slots Left: {{ trek.slotsLeft }}</p>
+            <p class="mb-2"><strong>Location:</strong> {{ trek.location }}</p>
+            <p class="mb-2"><strong>Difficulty:</strong> {{ trek.difficulty }}</p>
+            <p class="mb-2"><strong>Duration:</strong> {{ trek.duration }} Days</p>
+            <p class="mb-3">Slots Left: {{ trek.available_slots }}</p>
 
             <button
-              class="btn w-100"
-              :class="trek.slotsLeft > 0 ? 'btn-outline-primary' : 'btn-outline-secondary'"
-              :disabled="trek.slotsLeft === 0"
+              class="btn btn-success w-100"
+              data-bs-toggle="modal"
+              data-bs-target="#bookingModal"
+              @click="openBookingModal(trek)"
             >
-              View Details
+              <i class="bi bi-backpack2 me-2"></i>
+              Book Now
             </button>
           </div>
         </div>

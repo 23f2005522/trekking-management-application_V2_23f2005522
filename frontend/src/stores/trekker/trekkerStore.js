@@ -13,6 +13,9 @@ export const useTrekkerStore = defineStore("trekker", () => {
     const recentBookings = ref([]);
     const loadingDashboard = ref(false);
 
+
+
+
     // Fetch trekker dashboard data from backend
     async function fetchDashboardData() {
         loadingDashboard.value = true;
@@ -41,6 +44,16 @@ export const useTrekkerStore = defineStore("trekker", () => {
         recentBookings.value = [];
         loadingDashboard.value = false;
     }
+
+
+
+
+    
+
+
+
+
+
 
     return {
         trekkerProfile,
