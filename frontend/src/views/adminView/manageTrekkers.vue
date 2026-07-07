@@ -80,7 +80,7 @@ const handleTrekkerSelection = (id) => {
         <table class="table table-hover mb-0">
           <thead class="bg-success text-white">
             <tr>
-              <th>ID</th>
+              <th>User ID</th>
               <th>Name</th>
               <th>Email</th>
               <th>Phone Number</th>

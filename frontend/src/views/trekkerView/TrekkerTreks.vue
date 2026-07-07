@@ -85,7 +85,7 @@ function openBookingModal(trek) {
               @click="openBookingModal(trek)"
             >
               <i class="bi bi-backpack2 me-2"></i>
-              Book Now
+              Show Details 
             </button>
           </div>
         </div>

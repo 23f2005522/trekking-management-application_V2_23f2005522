@@ -210,8 +210,6 @@ watch(
 
                     <small class="text-muted"> Keep Pending until every detail is verified. </small>
                   </div>
-
-
                 </div>
               </form>
             </div>
@@ -221,14 +219,19 @@ watch(
 
               <button
                 type="button"
-                class="btn btn-success"
+                class="btn"
+                :class="
+                  trekStore.editingTrek?.status === 'completed' ? 'btn-secondary' : 'btn-success'
+                "
+                :disabled="trekStore.savingTrek || trekStore.editingTrek?.status === 'completed'"
                 @click="handleSaveTrek"
               >
                 <span
                   v-if="trekStore.savingTrek"
                   class="spinner-border spinner-border-sm me-1"
                 ></span>
-                Save Trek
+
+                {{ trekStore.editingTrek?.status === 'completed' ? 'Trek Completed' : 'Save Trek' }}
               </button>
             </div>
           </div>

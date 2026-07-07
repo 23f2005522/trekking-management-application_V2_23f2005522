@@ -22,7 +22,7 @@ def trek_serializer(trek):
         "starting_date": trek.starting_at.strftime("%Y-%m-%d"),
         "ending_date": trek.ending_at.strftime("%Y-%m-%d"),
         "status": trek.status.value if trek.status else None,
-        "description": trek.description
+        "description": trek.description,
     }
 
 
@@ -126,17 +126,20 @@ def get_trekker_dashboard():
         200,
     )
 
+
 # fetch and update trekker profile
 @trekker_bp.route("/profile", methods=["GET", "POST"])
 @jwt_required()
 @role_required(UserRole.TREKKER)
 def get_trekker_profile():
     user_id = int(get_jwt_identity())
+    print(f"Fetching profile for user_id: {user_id}")
     user = UserModel.query.get(user_id)
 
     if not user:
         return jsonify({"message": "User not found."}), 404
 
+    print(f"{user}")
     if request.method == "GET":
         return (
             jsonify(
@@ -153,12 +156,11 @@ def get_trekker_profile():
 
         # the data tath come for update only update that data and keep the rest as it is
 
-
         username = data.get("username", user.username)
         email = data.get("email", user.email)
         phone = data.get("phone", user.phone)
-        
-        print (f"Received data for profile update: {data}")
+
+        print(f"Received data for profile update: {data}")
 
         username = username.strip() if isinstance(username, str) else user.username
         email = email.strip() if isinstance(email, str) else user.email
@@ -220,12 +222,11 @@ def get_trekker_profile():
 @jwt_required()
 @role_required(UserRole.TREKKER)
 def get_treks():
-   
+
     try:
         query = TrekModel.query.filter(
             TrekModel.status.in_([TrekStatus.OPEN, TrekStatus.ONGOING])
         )
-
 
         difficulty = request.args.get("difficulty")
         location = request.args.get("location")
@@ -246,16 +247,13 @@ def get_treks():
 
         treks = query.order_by(TrekModel.created_at.desc()).all()
 
-        treks_json = [
-            trek_serializer(trek)
-            for trek in treks
-        ]
-        
+        treks_json = [trek_serializer(trek) for trek in treks]
+
         response = {
             "message": "Treks fetched successfully.",
             "treks": treks_json,
         }
-        
+
         return jsonify(response), 200
 
     except Exception as e:
@@ -264,6 +262,7 @@ def get_treks():
             jsonify({"message": "An error occurred while fetching treks."}),
             500,
         )
+
 
 @trekker_bp.route("/treks/<int:trek_id>", methods=["GET"])
 @jwt_required()
@@ -299,10 +298,7 @@ def get_trekker_bookings():
 
     bookings = BookingModel.query.filter_by(user_id=user.id).all()
 
-    bookings_json = [
-        booking_serializer(booking)
-        for booking in bookings
-    ]
+    bookings_json = [booking_serializer(booking) for booking in bookings]
 
     return (
         jsonify(
@@ -346,7 +342,27 @@ def book_trek():
         user_id=user.id, trek_id=trek.id
     ).first()
 
-    if existing_booking:
+    if (
+        existing_booking
+    ):  # if booked already then return error message and if booked but canceled then allow to book again
+        if existing_booking.status == BookingStatus.CANCELED:
+            existing_booking.status = BookingStatus.BOOKED
+            existing_booking.booking_date = datetime.utcnow()
+            existing_booking.payment_status = PaymentStatus.PENDING
+            existing_booking.amount_paid = 0.0
+
+            trek.available_slots -= 1
+            db.session.commit()
+
+            return (
+                jsonify(
+                    {
+                        "message": "Trek booked successfully.",
+                        "booking_details": booking_serializer(existing_booking),
+                    }
+                ),
+                200,
+            )
         return jsonify({"message": "You have already booked this trek."}), 400
 
     new_booking = BookingModel(
@@ -407,6 +423,7 @@ def cancel_booking(booking_id):
 
     try:
         booking.status = BookingStatus.CANCELED
+        booking.payment_status = PaymentStatus.FAILED
         booking.trek.available_slots += 1
         booking.booking_cancel_date = datetime.utcnow()
         db.session.commit()
@@ -422,8 +439,64 @@ def cancel_booking(booking_id):
         jsonify(
             {
                 "message": "Booking canceled successfully.",
-                "booking_details": booking_serializer(booking)
+                "booking_details": booking_serializer(booking),
             }
         ),
         200,
     )
+
+
+@trekker_bp.route("/history", methods=["GET"])
+@jwt_required()
+@role_required(UserRole.TREKKER)
+def get_trekking_history():
+    try:
+        user_id = int(get_jwt_identity())
+        user = UserModel.query.get(user_id)
+
+        if not user:
+            return jsonify({"message": "User not found."}), 404
+
+        bookings = (
+            BookingModel.query.filter(
+                BookingModel.user_id == user.id
+            )
+            .order_by(BookingModel.booking_date.desc())
+            .all()
+        )
+
+        history_json = []
+
+        for booking in bookings:
+
+            trek = trek_serializer(booking.trek)
+
+            # Add booking information to the trek
+            trek["booking_id"] = booking.id
+            trek["booking_status"] = booking.status.value
+            trek["payment_status"] = booking.payment_status.value
+            trek["booking_date"] = booking.booking_date.strftime("%d %b %Y")
+
+            history_json.append(trek)
+
+        return (
+            jsonify(
+                {
+                    "message": "Trekking history fetched successfully.",
+                    "history": history_json,
+                }
+            ),
+            200,
+        )
+
+    except Exception as e:
+        print(f"Error occurred while fetching trekking history: {e}")
+
+        return (
+            jsonify(
+                {
+                    "message": "An error occurred while fetching trekking history.",
+                }
+            ),
+            500,
+        )

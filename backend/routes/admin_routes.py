@@ -43,7 +43,7 @@ def get_admin_data():
                 {
                     "id": booking.id,
                     "booking_date": booking.booking_date.strftime("%d %b %Y"),
-                    "status": booking.status.value,
+                    "booking_status": booking.status.value,
                     "amount_paid": booking.amount_paid,
                     "payment_status": booking.payment_status.value,
                     "user": {
@@ -154,25 +154,28 @@ def get_treks():
 @role_required(UserRole.ADMIN)
 def add_trek():
     try:
-        data = request.get_json(silent=True)
+        data = request.get_json(silent=True) or {}
 
-        name = data.get("name") if data else None
-        location = data.get("location") if data else None
-        difficulty = data.get("difficulty") if data else None
-        duration = data.get("duration") if data else None
-        totalSlots = data.get("totalSlots") if data else None
-        price = data.get("price") if data else None
-        imageUrl = data.get("imageUrl") if data else None
-        description = data.get("description") if data else None
-        startDate = data.get("startDate") if data else None
-        endDate = data.get("endDate") if data else None
-        assignedStaffId = data.get("assignedStaffId") if data else None
+        name = data.get("name")
+        location = data.get("location")
+        difficulty = data.get("difficulty")
+        duration = data.get("duration")
+        totalSlots = data.get("totalSlots")
+        price = data.get("price")
+        imageUrl = data.get("imageUrl")
+        description = data.get("description")
+        startDate = data.get("startDate")
+        endDate = data.get("endDate")
+        assignedStaffId = data.get("assignedStaffId")
+       
+        if assignedStaffId == "" or assignedStaffId is None:
+            assignedStaffId = None
+
         status = (
             TrekStatus.APPROVED
             if data.get("status") == TrekStatus.APPROVED.value
             else TrekStatus.PENDING
         )
-
 
         # same trek cant be added before the previous trek is completed
         exsiting_trek = TrekModel.query.filter_by(name=name).first()
@@ -182,12 +185,24 @@ def add_trek():
             }
             return jsonify(response), 400
 
-        # check even that assigned staff exists
-        if assignedStaffId:
+        # Now this safely checks if it's an actual value or ID
+        if assignedStaffId is not None:
             staff_member = StaffModel.query.filter_by(id=int(assignedStaffId)).first()
             if not staff_member:
                 response = {
                     "message": "The assigned staff member does not exist.",
+                }
+                return jsonify(response), 400
+
+        # if duration not mathcing with start and end date
+        if startDate and endDate and duration:
+            start_date_obj = datetime.strptime(startDate, "%Y-%m-%d")
+            end_date_obj = datetime.strptime(endDate, "%Y-%m-%d")
+            calculated_duration = (end_date_obj - start_date_obj).days + 1
+
+            if calculated_duration != int(duration):
+                response = {
+                    "message": "The provided duration does not match the difference between the start and end dates.",
                 }
                 return jsonify(response), 400
 
@@ -196,15 +211,15 @@ def add_trek():
             location=location,
             difficulty=TrekDifficulty(difficulty),
             duration=int(duration),
-            total_slots=int(totalSlots),
-            available_slots=int(totalSlots),
+            total_slots=int(totalSlots) if totalSlots is not None else 0,
+            available_slots=int(totalSlots) if totalSlots is not None else 0,
             price=float(price),
             image_url=imageUrl,
             description=description,
             starting_at=datetime.strptime(startDate, "%Y-%m-%d"),
             ending_at=datetime.strptime(endDate, "%Y-%m-%d"),
-            assigned_staff_id=int(assignedStaffId) if assignedStaffId else None,
-            status=status
+            assigned_staff_id=int(assignedStaffId),
+            status=status,
         )
 
         db.session.add(new_trek)
@@ -237,7 +252,6 @@ def add_trek():
             "message": "An error occurred while adding the trek.",
         }
         return jsonify(response), 500
-
 
 @admin_bp.route("/edittrek/<int:trek_id>", methods=["GET", "POST"])
 @jwt_required()
@@ -304,7 +318,9 @@ def edit_trek(trek_id):
             assigned_staff_id = data.get("assigned_staff_id", 9999999)
             print(f"Received assigned_staff_id: {assigned_staff_id}")
             if assigned_staff_id:
-                staff_member = StaffModel.query.filter_by(id=int(assigned_staff_id)).first()
+                staff_member = StaffModel.query.filter_by(
+                    id=int(assigned_staff_id)
+                ).first()
                 if not staff_member:
                     response = {
                         "message": "The assigned staff member does not exist.",
@@ -332,8 +348,12 @@ def edit_trek(trek_id):
             trek.ending_at = datetime.strptime(
                 data.get("endDate", trek.ending_at.strftime("%Y-%m-%d")), "%Y-%m-%d"
             )
-            
-            trek.status = TrekStatus.APPROVED if data.get("status", trek.status.value) == TrekStatus.APPROVED.value else TrekStatus.PENDING
+
+            trek.status = (
+                TrekStatus.APPROVED
+                if data.get("status", trek.status.value) == TrekStatus.APPROVED.value
+                else TrekStatus.PENDING
+            )
 
             db.session.commit()
             response = {
@@ -376,7 +396,6 @@ def get_staffs():
 
     try:
         user_staff = UserModel.query.filter_by(role=UserRole.STAFF).all()
-
 
         staffs_JSON = [
             {
@@ -618,3 +637,83 @@ def get_bookings():
             "message": "An error occurred while fetching bookings.",
         }
         return jsonify(response), 500
+
+
+# report generation routes
+@admin_bp.route("/report", methods=["GET"])
+@jwt_required()
+@role_required(UserRole.ADMIN)
+def generate_report():
+    # Overview
+    total_trekkers = UserModel.query.filter_by(role=UserRole.TREKKER).count()
+    total_staff = UserModel.query.filter_by(role=UserRole.STAFF).count()
+    total_treks = TrekModel.query.count()
+    total_bookings = BookingModel.query.count()
+
+    # Trek Status
+
+    open_count = TrekModel.query.filter_by(status=TrekStatus.OPEN).count()
+    ongoing_count = TrekModel.query.filter_by(status=TrekStatus.ONGOING).count()
+    completed_count = TrekModel.query.filter_by(status=TrekStatus.COMPLETED).count()
+    pending_count = TrekModel.query.filter_by(status=TrekStatus.PENDING).count()
+    approved_count = TrekModel.query.filter_by(status=TrekStatus.APPROVED).count()
+
+    # Booking Status
+
+    booked = BookingModel.query.filter_by(status=BookingStatus.BOOKED).count()
+    completed = BookingModel.query.filter_by(status=BookingStatus.COMPLETED).count()
+    cancelled = BookingModel.query.filter_by(status=BookingStatus.CANCELED).count()
+
+    # Payment Statistics
+
+    paid = BookingModel.query.filter_by(payment_status=PaymentStatus.PAID).count()
+    pending = BookingModel.query.filter_by(payment_status=PaymentStatus.PENDING).count()
+    revenue = db.session.query(db.func.sum(BookingModel.amount_paid)).scalar() or 0
+
+    # popular treks based on the number of bookings
+    popular_treks = (
+        db.session.query(
+            TrekModel.name,
+            db.func.count(BookingModel.id).label("booking_count"),
+        )
+        .join(BookingModel, BookingModel.trek_id == TrekModel.id)
+        .group_by(TrekModel.id)
+        .order_by(db.desc("booking_count"))
+        .limit(5)
+        .all()
+    )
+
+    popular_treks_JSON = [
+        {"trek_name": trek.name, "booking_count": trek.booking_count}
+        for trek in popular_treks
+    ]
+
+    response = {
+        "message": "Report generated successfully.",
+        "overview": {
+            "total_trekkers": total_trekkers,
+            "total_staff": total_staff,
+            "total_treks": total_treks,
+            "total_bookings": total_bookings,
+        },
+        "trek_status": {
+            "open": open_count,
+            "ongoing": ongoing_count,
+            "completed": completed_count,
+            "pending": pending_count,
+            "approved": approved_count,
+        },
+        "booking_status": {
+            "booked": booked,
+            "completed": completed,
+            "cancelled": cancelled,
+        },
+        "payment_statistics": {
+            "paid": paid,
+            "pending": pending,
+            "revenue": revenue,
+        },
+        "popular_treks": popular_treks_JSON,
+    }
+
+    return jsonify(response), 200

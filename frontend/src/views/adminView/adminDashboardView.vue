@@ -186,8 +186,9 @@ onMounted(async () => {
                 <th>Booking ID</th>
                 <th>User</th>
                 <th>Trek</th>
-                <th>Date</th>
-                <th>Status</th>
+                <th>Booking Date</th>
+                <th>Booking Status</th>
+                <th>Payment Status</th>
               </tr>
             </thead>
 
@@ -200,10 +201,24 @@ onMounted(async () => {
                 <td>{{ booking.user.username }}</td>
                 <td>{{ booking.trek.name }}</td>
                 <td>{{ booking.booking_date }}</td>
+                <td 
+                    :class="{
+                    'bg-success': booking.booking_status === 'booked',
+                    'bg-secondary': booking.booking_status === 'completed',
+                    'bg-danger': booking.booking_status === 'canceled',
+                    'text-white': booking.booking_status === 'booked' || booking.booking_status === 'canceled',
+                  }"
+                >{{ booking.booking_status }}</td>
+                <td
+                  :class="{
+                    'bg-success': booking.payment_status === 'paid',
+                    'bg-warning': booking.payment_status === 'pending',
+                    'bg-danger': booking.payment_status === 'failed',
+                    'text-white': booking.payment_status === 'paid' || booking.payment_status === 'failed',
+                  }"
+                >{{ booking.payment_status }}</td>
 
-                <td>
-                  <span class="badge bg-warning text-dark"> Booked </span>
-                </td>
+
               </tr>
             </tbody>
           </table>

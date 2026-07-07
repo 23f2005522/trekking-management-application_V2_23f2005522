@@ -63,6 +63,12 @@ const approuter = {
           name: "manageBookings",
           component: () => import("@/views/adminView/manageBookings.vue")
         }
+        ,
+                {
+          path: "reports",
+          name: "adminReports",
+          component: () => import("@/views/adminView/adminReport.vue")
+        }
 
       ]
     },

@@ -129,7 +129,7 @@ onMounted(async () => {
 
               <div class="col-4">
                 <div class="info-box">
-                  <small class="text-muted d-block">Participants</small>
+                  <small class="text-muted d-block">Booked Slots (participants)</small>
                   <strong class="text-danger">{{ trek.total_participants }}</strong>
                 </div>
               </div>

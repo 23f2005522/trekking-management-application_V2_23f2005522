@@ -2,6 +2,7 @@
 import { onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useTrekkerStore } from '@/stores/trekker/trekkerStore'
+import Loader from '@/components/Loader.vue'
 
 const router = useRouter()
 const trekkerStore = useTrekkerStore()
@@ -44,14 +45,14 @@ onMounted(() => {
         <p class="text-muted mb-0">Track bookings and discover newly opened treks.</p>
       </div>
 
-      <button class="btn btn-success" @click="router.push('/trekker/treks')">
-        <i class="bi bi-signpost-2 me-1"></i>
-        Browse Treks
+      <button class="btn btn-success" @click="router.push('/trekker/profile')">
+        <i class="bi bi-person me-1"></i>
+         Manage Profile
       </button>
     </div>
 
     <div v-if="trekkerStore.loadingDashboard" class="text-center text-muted py-5">
-      Loading dashboard...
+      <Loader/>
     </div>
 
     <div v-else>

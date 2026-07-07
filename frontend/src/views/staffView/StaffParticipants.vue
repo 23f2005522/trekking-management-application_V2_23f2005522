@@ -17,11 +17,12 @@ const loadingParticipants = ref(false) // loading flag for the right-side partic
 // computed
 const selectedTrekName = computed(() => {
   // fallback to the sidebar's trek name while the participants API call is still in flight
-  return trek.value?.name || staffStore.assignedTreks.find((t) => t.id === selectedTrekId.value)?.name || 'Select a trek'
+  return (
+    trek.value?.name ||
+    staffStore.assignedTreks.find((t) => t.id === selectedTrekId.value)?.name ||
+    'Select a trek'
+  )
 })
-
-
-
 
 // helpers
 const getStatusBadgeClass = (status) => {
@@ -54,7 +55,8 @@ const formatDisplayDate = (dateString) => {
   }).format(date)
 }
 
-// actions
+
+// fetch participants for the selected trek
 const fetchParticipants = async (trekId) => {
   // guard: nothing selected, clear the panel and stop
   if (!trekId) {
@@ -76,6 +78,30 @@ const fetchParticipants = async (trekId) => {
   } finally {
     loadingParticipants.value = false
   }
+}
+// toggle payment status for a participant
+const togglePayment = async (participant) => {
+
+  try {
+
+    const { data } = await axiosInstance.post(
+      `/staff/treks/${selectedTrekId.value}/participants/${participant.id}/payment`
+    )
+
+    participant.payment_status = data.payment_status
+
+    flashStore.show(data.message, 'success')
+
+  } catch (error) {
+
+    flashStore.show(
+      error.response?.data?.message ||
+      'Failed to update payment status.',
+      'error'
+    )
+
+  }
+
 }
 
 const selectTrek = (trekId) => {
@@ -153,7 +179,9 @@ onMounted(async () => {
         <div class="participants-panel">
           <div class="d-flex justify-content-between align-items-start flex-wrap gap-3 mb-3">
             <div>
-              <h4 class="fw-semibold mb-1">{{ selectedTrekName }} (TrekID: {{ selectedTrekId }})</h4>
+              <h4 class="fw-semibold mb-1">
+                {{ selectedTrekName }} (TrekID: {{ selectedTrekId }})
+              </h4>
               <p v-if="trek" class="text-muted mb-0">
                 {{ trek.location }} - {{ formatDisplayDate(trek.starting_date) }} to
                 {{ formatDisplayDate(trek.ending_date) }}
@@ -183,7 +211,8 @@ onMounted(async () => {
                   <th>Name</th>
                   <th>Email</th>
                   <th>Booking Date</th>
-                  <th>Status</th>
+                  <th>Booking Status</th>
+                  <th>Payment Status</th>
                 </tr>
               </thead>
 
@@ -194,9 +223,28 @@ onMounted(async () => {
                   <td>{{ participant.email }}</td>
                   <td>{{ participant.booking_date }}</td>
                   <td>
-                    <span :class="['badge text-uppercase', getStatusBadgeClass(participant.status)]">
+                    <span
+                      :class="['badge text-uppercase', getStatusBadgeClass(participant.status)]"
+                    >
                       {{ participant.status }}
                     </span>
+                  </td>
+
+                  <td>
+                    <button
+                      class="btn btn-sm"
+                      :class="participant.payment_status === 'paid' ? 'btn-success' : 'btn-warning'"
+                      @click="togglePayment(participant)"
+                    >
+                      <i
+                        class="bi me-1"
+                        :class="
+                          participant.payment_status === 'paid' ? 'bi-check-circle' : 'bi-cash'
+                        "
+                      ></i>
+
+                      {{ participant.payment_status }}
+                    </button>
                   </td>
                 </tr>
 

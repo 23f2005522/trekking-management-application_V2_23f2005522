@@ -53,7 +53,7 @@ onMounted(() => {
         <table class="table table-hover mb-0">
           <thead class="bg-success text-white">
             <tr>
-              <th scope="col">ID</th>
+              <th scope="col">Booking ID</th>
               <th scope="col">Trekker</th>
               <th scope="col">Trek</th>
               <th scope="col">Booking Date</th>

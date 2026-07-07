@@ -183,6 +183,7 @@ def get_trek_participants(trek_id):
                 "email": booking.user.email,
                 "booking_date": booking.booking_date.strftime("%d %b %Y"),
                 "status": booking.status.value,
+                "payment_status": booking.payment_status.value,
             }
         )
 
@@ -245,8 +246,22 @@ def update_assigned_trek_status(trek_id):
             400,
         )
 
+    # if the status is "completed" then update the booking status of all the participants in that trek to "completed" and also update the payment status of all the participants in that trek to "paid"
+    if new_status == TrekStatus.COMPLETED.value:
+        for booking in trek.bookings:
+            if booking.status == BookingStatus.BOOKED:
+                booking.status = BookingStatus.COMPLETED
+                booking.payment_status = PaymentStatus.COMPLETED
+    
+    if new_status == TrekStatus.OPEN.value: # if the status is "open" then update the payment status of all the participants in that trek to "pending"
+        for booking in trek.bookings:
+            booking.status = BookingStatus.BOOKED
+            booking.payment_status = PaymentStatus.PENDING
+            
+    
+
     try:
-        trek.status = TrekStatus(new_status)
+        trek.status = TrekStatus(new_status) # update the status of the trek to the new status as normal 
         db.session.commit()
 
         total_participants = sum(
@@ -311,6 +326,15 @@ def update_assigned_trek_slots(trek_id):
     if new_available_slots > trek.total_slots:
         return jsonify({"message": "Available slots cannot exceed total slots."}), 400
 
+    if new_available_slots > trek.total_slots - sum(
+        1 for booking in trek.bookings if booking.status == BookingStatus.BOOKED
+    ):
+        return jsonify(
+            {
+                "message": "Available slots cannot exceed the number of unbooked slots."
+            }
+        ), 400
+
     try:
         trek.available_slots = new_available_slots
         db.session.commit()
@@ -342,8 +366,62 @@ def update_assigned_trek_slots(trek_id):
         return jsonify({"message": "An error occurred while updating trek slots."}), 500
 
 
+# update the payment status of a specific participant in a trek assigned to the logged-in staff form pending to paid and vice versa
+@staff_bp.route("/treks/<int:trek_id>/participants/<int:booking_id>/payment", methods=["POST"])
+@jwt_required()
+@role_required(UserRole.STAFF)
+def update_participant_payment_status(trek_id, booking_id):
 
+    user_id = int(get_jwt_identity())
+    user = UserModel.query.get(user_id)
 
+    if not user:
+        return jsonify({"message": "User not found"}), 404
+
+    trek = TrekModel.query.get(trek_id)
+
+    if not trek:
+        return jsonify({"message": "Trek not found"}), 404
+
+    staff_profile = user.staff_profile
+
+    if trek not in staff_profile.treks:
+        return jsonify({"message": "This trek is not assigned to you."}), 403
+
+    booking = BookingModel.query.filter_by(
+        id=booking_id,
+        trek_id=trek.id
+    ).first()
+
+    if not booking:
+        return jsonify({"message": "Participant booking not found."}), 404
+
+    try:
+
+        if booking.payment_status == PaymentStatus.PAID:
+            booking.payment_status = PaymentStatus.PENDING
+            booking.amount_paid = 0
+
+        else:
+            booking.payment_status = PaymentStatus.PAID
+            booking.amount_paid = trek.price
+
+        db.session.commit()
+
+        return jsonify({
+            "message": "Payment status updated successfully.",
+            "payment_status": booking.payment_status.value,
+            "amount_paid": float(booking.amount_paid)
+        }), 200
+
+    except Exception as e:
+
+        db.session.rollback()
+        print(e)
+
+        return jsonify({
+            "message": "Failed to update payment status."
+        }), 500
 
 
 
