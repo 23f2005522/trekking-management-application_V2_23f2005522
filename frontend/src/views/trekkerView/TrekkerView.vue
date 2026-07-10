@@ -1,19 +1,18 @@
-
 <script setup>
-import TrekkerSidebar from './TrekkerSidebar.vue';
+import TrekkerSidebar from './TrekkerSidebar.vue'
 </script>
 
 <template>
-  <div class="container-fluid">
+  <div class="container">
     <div class="row">
-      <!-- Sidebar -->
-      <div class="col-auto p-0">
+      <div class="col-1 p-0">
         <TrekkerSidebar />
       </div>
 
-      <!-- Main -->
-      <div class="col p-4">
-        <router-view />
+      <div class="col-11">
+        <div class="py-4">
+          <RouterView />
+        </div>
       </div>
     </div>
   </div>

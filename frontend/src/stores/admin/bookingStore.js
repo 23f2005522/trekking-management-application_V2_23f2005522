@@ -7,12 +7,12 @@ export const useBookingStore = defineStore("Booking", () => {
 
     const flashStore = useFlashStore();
 
-    // State variables
+    // state
     const allBookings = ref([]);
     const loadingBookings = ref(false);
     const bookingSearchQuery = ref("");
 
-    // Getters
+    // getters
     const filteredBookings = computed(() => {
         const query = bookingSearchQuery.value.trim().toLowerCase();
         if (!query) return allBookings.value;
@@ -29,7 +29,7 @@ export const useBookingStore = defineStore("Booking", () => {
         });
     });
 
-    // Actions
+    // actions
     async function fetchAllBookings() {
         loadingBookings.value = true;
         try {
@@ -44,15 +44,12 @@ export const useBookingStore = defineStore("Booking", () => {
     }
 
     return {
-        // State
         allBookings,
         loadingBookings,
         bookingSearchQuery,
 
-        // Getters
         filteredBookings,
 
-        // Actions
         fetchAllBookings,
     };
 });

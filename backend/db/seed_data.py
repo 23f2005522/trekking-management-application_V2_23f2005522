@@ -172,6 +172,8 @@ def seed_dummy_booking():
             amount_paid=trek.price
         )
 
+        trek.available_slots = max(trek.available_slots - 1, 0)
+
         db.session.add(booking)
         db.session.commit()
 

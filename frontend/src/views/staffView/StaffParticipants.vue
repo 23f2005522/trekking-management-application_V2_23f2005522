@@ -1,30 +1,28 @@
 <script setup>
 import { computed, onMounted, ref, watch } from 'vue'
-import axiosInstance from '@/utils/axioUtil'
-import { useFlashStore } from '@/stores/flashStore'
+import { storeToRefs } from 'pinia'
 import { userStaffStore } from '@/stores/staff/staffStore'
 
-// stores
 const staffStore = userStaffStore()
-const flashStore = useFlashStore()
+const {
+  assignedTreks,
+  participantsTrek,
+  participants,
+  loadingParticipants,
+} = storeToRefs(staffStore)
 
-// state
-const selectedTrekId = ref(null) // currently selected trek's id, drives which participants list is shown
-const trek = ref(null) // full trek details for the selected trek (from participants API)
-const participants = ref([]) // list of trekkers booked on the selected trek
-const loadingParticipants = ref(false) // loading flag for the right-side participants panel
+const selectedTrekId = ref(null)
 
-// computed
+const trek = computed(() => participantsTrek.value)
+
 const selectedTrekName = computed(() => {
-  // fallback to the sidebar's trek name while the participants API call is still in flight
   return (
     trek.value?.name ||
-    staffStore.assignedTreks.find((t) => t.id === selectedTrekId.value)?.name ||
+    assignedTreks.value.find((t) => t.id === selectedTrekId.value)?.name ||
     'Select a trek'
   )
 })
 
-// helpers
 const getStatusBadgeClass = (status) => {
   const normalizedStatus = String(status || '').toLowerCase()
 
@@ -55,79 +53,35 @@ const formatDisplayDate = (dateString) => {
   }).format(date)
 }
 
-
-// fetch participants for the selected trek
-const fetchParticipants = async (trekId) => {
-  // guard: nothing selected, clear the panel and stop
-  if (!trekId) {
-    trek.value = null
-    participants.value = []
-    return
-  }
-
-  loadingParticipants.value = true
-
-  try {
-    const { data } = await axiosInstance.get(`/staff/treks/${trekId}/participants`)
-    trek.value = data.trek
-    participants.value = data.participants || []
-  } catch (error) {
-    trek.value = null
-    participants.value = []
-    flashStore.show(error.response?.data?.message || 'Failed to load participants.', 'error')
-  } finally {
-    loadingParticipants.value = false
-  }
-}
-// toggle payment status for a participant
 const togglePayment = async (participant) => {
-
   try {
-
-    const { data } = await axiosInstance.post(
-      `/staff/treks/${selectedTrekId.value}/participants/${participant.id}/payment`
-    )
-
-    participant.payment_status = data.payment_status
-
-    flashStore.show(data.message, 'success')
-
-  } catch (error) {
-
-    flashStore.show(
-      error.response?.data?.message ||
-      'Failed to update payment status.',
-      'error'
-    )
-
+    await staffStore.toggleParticipantPayment(selectedTrekId.value, participant.id)
+  } catch {
+    // staffStore already shows flash on failure
   }
-
 }
 
 const selectTrek = (trekId) => {
-  // just update local state, no route/query involved
   selectedTrekId.value = trekId
 }
 
-// whenever the selected trek changes, load its participants
-watch(selectedTrekId, fetchParticipants)
+watch(selectedTrekId, (trekId) => staffStore.fetchParticipants(trekId))
 
-// on page load: fetch assigned treks, then auto-select the first one
 onMounted(async () => {
   try {
     await staffStore.fetchDashboardData()
 
-    if (staffStore.assignedTreks.length > 0) {
-      selectTrek(staffStore.assignedTreks[0].id)
+    if (assignedTreks.value.length > 0) {
+      selectTrek(assignedTreks.value[0].id)
     }
-  } catch (error) {
-    flashStore.show(error.response?.data?.message || 'Failed to load assigned treks.', 'error')
+  } catch {
+    // staffStore already shows flash on failure
   }
 })
 </script>
 
 <template>
-  <div class="container-fluid py-4">
+  <div>
     <div class="d-flex justify-content-between align-items-start flex-wrap gap-3 mb-4">
       <div>
         <h1 class="fw-bold mb-1">Participants</h1>
@@ -141,16 +95,15 @@ onMounted(async () => {
     </div>
 
     <div class="row g-4">
-      <!-- left: assigned treks list -->
       <div class="col-12 col-lg-4 col-xl-3">
         <div class="trek-list-panel">
           <div class="d-flex justify-content-between align-items-center mb-3">
             <h5 class="fw-semibold mb-0">Assigned Treks</h5>
-            <span class="badge bg-success">{{ staffStore.assignedTreks.length }}</span>
+            <span class="badge bg-success">{{ assignedTreks.length }}</span>
           </div>
 
           <button
-            v-for="assignedTrek in staffStore.assignedTreks"
+            v-for="assignedTrek in assignedTreks"
             :key="assignedTrek.id"
             type="button"
             :class="[
@@ -168,13 +121,12 @@ onMounted(async () => {
             </span>
           </button>
 
-          <div v-if="staffStore.assignedTreks.length === 0" class="text-muted text-center py-4">
+          <div v-if="assignedTreks.length === 0" class="text-muted text-center py-4">
             No assigned treks found.
           </div>
         </div>
       </div>
 
-      <!-- right: participants for the selected trek -->
       <div class="col-12 col-lg-8 col-xl-9">
         <div class="participants-panel">
           <div class="d-flex justify-content-between align-items-start flex-wrap gap-3 mb-3">

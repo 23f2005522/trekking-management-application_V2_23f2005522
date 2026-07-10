@@ -7,14 +7,14 @@ export const useTrekStore = defineStore("treks", () => {
 
     const flashStore = useFlashStore();
 
-    // State variables
+    // state
     const treks = ref([]);
     const loadingtreks = ref(false);
     const editingTrek = ref(null)
     const loadingEditingTrek = ref(false)
     const treksearchQuery = ref("");
 
-    // Getters 
+    // getters
     const filteredTreks = computed(() => {
 
         const query = treksearchQuery.value.trim().toLowerCase();
@@ -42,7 +42,7 @@ export const useTrekStore = defineStore("treks", () => {
     });
 
 
-    // Actions
+    // actions
     async function fetchTreks() {
 
         loadingtreks.value = true;
@@ -97,19 +97,29 @@ export const useTrekStore = defineStore("treks", () => {
         }
     }
 
+    async function addTrek(trekData) {
+        try {
+            const { data } = await axiosInstance.post("/admin/addtrek", trekData);
+            await fetchTreks();
+            flashStore.show(data.message || "Trek added successfully.", "success");
+            return data;
+        } catch (error) {
+            flashStore.show(error.response?.data?.message || "Failed to add trek.", "error");
+            throw error;
+        }
+    }
+
     return {
-        // State
         treks,
         loadingtreks,
         editingTrek,
         treksearchQuery,
         filteredTreks,
 
-
-        // Actions
         fetchTreks,
         fetchTrekById,
         updateTrek,
-        deleteTrek
+        deleteTrek,
+        addTrek
     };
 });

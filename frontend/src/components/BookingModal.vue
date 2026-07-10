@@ -1,23 +1,27 @@
 <script setup>
+import { Modal } from 'bootstrap'
 import { useFlashStore } from '@/stores/flashStore'
 import { useTrekStore } from '@/stores/trekker/trekStore'
 
 const trekStore = useTrekStore()
 const flashStore = useFlashStore()
 
-
-//confirm booking function
 async function confirmBooking() {
   try {
     await trekStore.bookTrek()
+    await trekStore.fetchTreks()
 
-    flashStore.show('Trek booked.' , "success")
+    flashStore.show('Trek booked.', 'success')
+
+    const modalEl = document.getElementById('bookingModal')
+    if (modalEl) Modal.getOrCreateInstance(modalEl).hide()
   } catch (error) {
-    flashStore.show(error.response?.data?.message || "An error occurred while booking the trek.", "error")
+    flashStore.show(
+      error.response?.data?.message || 'An error occurred while booking the trek.',
+      'error'
+    )
   }
 }
-
-
 </script>
 
 <template>
@@ -30,7 +34,6 @@ async function confirmBooking() {
   >
     <div class="modal-dialog modal-dialog-centered modal-lg">
       <div class="modal-content">
-        <!-- Header -->
         <div class="modal-header bg-success text-white">
           <h5 class="modal-title" id="bookingModalLabel">
             <i class="bi bi-backpack2-fill me-2"></i>
@@ -40,13 +43,13 @@ async function confirmBooking() {
           <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
         </div>
 
-        <!-- Body -->
         <div class="modal-body" v-if="trekStore.selectedTrek">
           <div class="row">
             <!-- Image -->
             <div class="col-md-5">
               <img
                 :src="
+                  trekStore.selectedTrek.image_url ||
                   trekStore.selectedTrek.image ||
                   'https://developers.elementor.com/docs/assets/img/elementor-placeholder-image.png'
                 "
@@ -128,7 +131,6 @@ async function confirmBooking() {
           </div>
         </div>
 
-        <!-- Footer -->
         <div class="modal-footer">
           <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">
             Cancel

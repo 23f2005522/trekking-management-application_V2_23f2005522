@@ -7,7 +7,7 @@ from utils.auth_utility import role_required
 trekker_bp = Blueprint("trekker_routes", __name__, url_prefix="/api/trekker")
 
 
-# //serializers
+# helper to shape trek data before sending to frontend
 def trek_serializer(trek):
     return {
         "id": trek.id,
@@ -26,6 +26,7 @@ def trek_serializer(trek):
     }
 
 
+# helper to shape booking data for lists and details
 def booking_serializer(booking):
     return {
         "id": booking.id,
@@ -47,6 +48,7 @@ def booking_serializer(booking):
     }
 
 
+# helper to shape trekker profile data
 def user_serializer(user):
     return {
         "id": user.id,
@@ -60,6 +62,7 @@ def user_serializer(user):
     }
 
 
+# load trekker dashboard with booking counts and recent stuff
 @trekker_bp.route("/dashboard", methods=["GET"])
 @jwt_required()
 @role_required(UserRole.TREKKER)
@@ -127,7 +130,7 @@ def get_trekker_dashboard():
     )
 
 
-# fetch and update trekker profile
+# fetch or update trekker profile details
 @trekker_bp.route("/profile", methods=["GET", "POST"])
 @jwt_required()
 @role_required(UserRole.TREKKER)
@@ -218,15 +221,14 @@ def get_trekker_profile():
         )
 
 
+# browse open treks with optional search and filters
 @trekker_bp.route("/treks", methods=["GET"])
 @jwt_required()
 @role_required(UserRole.TREKKER)
 def get_treks():
 
     try:
-        query = TrekModel.query.filter(
-            TrekModel.status.in_([TrekStatus.OPEN, TrekStatus.ONGOING])
-        )
+        query = TrekModel.query.filter_by(status=TrekStatus.OPEN)
 
         difficulty = request.args.get("difficulty")
         location = request.args.get("location")
@@ -264,6 +266,7 @@ def get_treks():
         )
 
 
+# get full details of one trek before booking
 @trekker_bp.route("/treks/<int:trek_id>", methods=["GET"])
 @jwt_required()
 @role_required(UserRole.TREKKER)
@@ -286,6 +289,7 @@ def get_trek_details(trek_id):
     )
 
 
+# see all bookings made by the logged in trekker
 @trekker_bp.route("/bookings", methods=["GET"])
 @jwt_required()
 @role_required(UserRole.TREKKER)
@@ -311,6 +315,7 @@ def get_trekker_bookings():
     )
 
 
+# book a slot on an open trek (re-book works if previously canceled)
 @trekker_bp.route("/booktrek", methods=["POST"])
 @jwt_required()
 @role_required(UserRole.TREKKER)
@@ -397,6 +402,7 @@ def book_trek():
     )
 
 
+# cancel a booking and put the trek slot back
 @trekker_bp.route("/deletebooking/<int:booking_id>", methods=["GET"])
 @jwt_required()
 @role_required(UserRole.TREKKER)
@@ -446,6 +452,7 @@ def cancel_booking(booking_id):
     )
 
 
+# get full trekking history for the logged in trekker
 @trekker_bp.route("/history", methods=["GET"])
 @jwt_required()
 @role_required(UserRole.TREKKER)

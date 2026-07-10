@@ -1,22 +1,10 @@
 <script setup>
-import { onMounted, onUnmounted } from 'vue'
 import { useStaffStore } from '@/stores/admin/staffStore'
-import { hideBootstrapModal, registerModalCleanup } from '@/utils/bootstrapModal'
 
 const staffStore = useStaffStore()
-let cleanupModal = () => {}
-
-onMounted(() => {
-  cleanupModal = registerModalCleanup('manageStaffModal')
-})
-
-onUnmounted(() => {
-  cleanupModal()
-})
 
 const handleSaveChanges = async () => {
   await staffStore.handelEditStaff()
-  hideBootstrapModal('manageStaffModal')
 }
 </script>
 

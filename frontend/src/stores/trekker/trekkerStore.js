@@ -6,7 +6,7 @@ import { useFlashStore } from "@/stores/flashStore";
 export const useTrekkerStore = defineStore("trekker", () => {
     const flashStore = useFlashStore();
 
-    // Dashboard state
+    // state
     const trekkerProfile = ref(null);
     const dashboardStats = ref(null);
     const recentOpenTreks = ref([]);
@@ -16,7 +16,7 @@ export const useTrekkerStore = defineStore("trekker", () => {
 
 
 
-    // Fetch trekker dashboard data from backend
+    // actions
     async function fetchDashboardData() {
         loadingDashboard.value = true;
 

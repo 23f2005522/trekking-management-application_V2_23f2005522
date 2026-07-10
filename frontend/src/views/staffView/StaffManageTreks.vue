@@ -1,12 +1,10 @@
 <script setup>
-import { onMounted, ref } from 'vue'
-import axiosInstance from '@/utils/axioUtil'
-import { useFlashStore } from '@/stores/flashStore'
+import { onMounted } from 'vue'
+import { storeToRefs } from 'pinia'
 import { userStaffStore } from '@/stores/staff/staffStore'
 
 const staffStore = userStaffStore()
-const flashStore = useFlashStore()
-const updatingSlotsId = ref(null)
+const { assignedTreks, updatingSlotsId } = storeToRefs(staffStore)
 
 const getStatusBadgeClass = (status) => {
   const normalizedStatus = String(status || '').toLowerCase()
@@ -37,38 +35,25 @@ const formatDisplayDate = (dateString) => {
   }).format(date)
 }
 
-const refreshTreks = async () => {
-  await staffStore.fetchDashboardData()
-}
-
 const updateAvailableSlots = async (trek) => {
-  updatingSlotsId.value = trek.id
-
   try {
-    const { data } = await axiosInstance.post(`/staff/treks/${trek.id}/slots`, {
-      available_slots: trek.available_slots,
-    })
-
-    flashStore.show(data.message || 'Available slots updated successfully.', 'success')
-    await refreshTreks()
-  } catch (error) {
-    flashStore.show(error.response?.data?.message || 'Failed to update available slots.', 'error')
-  } finally {
-    updatingSlotsId.value = null
+    await staffStore.updateTrekSlots(trek.id, trek.available_slots)
+  } catch {
+    // staffStore already shows flash on failure
   }
 }
 
 onMounted(async () => {
   try {
     await staffStore.fetchDashboardData()
-  } catch (error) {
-    flashStore.show(error.response?.data?.message || 'Failed to load assigned treks.', 'error')
+  } catch {
+    // staffStore already shows flash on failure
   }
 })
 </script>
 
 <template>
-  <div class="container-fluid py-4">
+  <div class="py-4">
     <div class="d-flex justify-content-between align-items-start flex-wrap gap-3 mb-4">
       <div>
         <h1 class="fw-bold mb-1">My Treks</h1>
@@ -77,12 +62,12 @@ onMounted(async () => {
 
       <div class="badge bg-light text-success border border-success-subtle px-3 py-2 rounded-pill">
         <i class="bi bi-signpost-2 me-1"></i>
-        {{ staffStore.assignedTreks.length }} Assigned Treks
+        {{ assignedTreks.length }} Assigned Treks
       </div>
     </div>
 
     <div class="row g-4">
-      <div v-for="trek in staffStore.assignedTreks" :key="trek.id" class="col-12 col-xl-6">
+      <div v-for="trek in assignedTreks" :key="trek.id" class="col-12 col-xl-6">
         <div class="card shadow-sm trek-card h-100 border-0">
           <div class="card-header trek-card-header bg-white border-0 pb-0">
             <div class="d-flex justify-content-between align-items-start gap-3">

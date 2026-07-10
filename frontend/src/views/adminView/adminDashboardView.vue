@@ -14,7 +14,6 @@ onMounted(async () => {
 
 <template>
   <div>
-    <!-- Loader -->
     <div v-if="adminStore.loadingAdmin">
       <Loader />
     </div>
@@ -27,8 +26,6 @@ onMounted(async () => {
       <p class="text-muted">
         Welcome back, Admin! Here's what's happening with your trekking platform.
       </p>
-
-      <!-- Statistics -->
 
       <div class="row g-4 mt-2">
         <div class="col-md-6 col-lg-3">

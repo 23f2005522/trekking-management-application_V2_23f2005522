@@ -7,6 +7,7 @@ from model.model import *
 admin_bp = Blueprint("admin", __name__, url_prefix="/api/admin")
 
 
+# load admin dashboard stats and recent bookings/treks
 @admin_bp.route("/data", methods=["GET"])
 @jwt_required()
 @role_required(UserRole.ADMIN)
@@ -35,7 +36,7 @@ def get_admin_data():
             fresh_bookings = list(
                 (
                     BookingModel.query.order_by(BookingModel.booking_date.desc())
-                    .limit(6)
+                    .limit(3)
                     .all()
                 )
             )
@@ -169,8 +170,11 @@ def add_trek():
         assignedStaffId = data.get("assignedStaffId")
        
         if assignedStaffId == "" or assignedStaffId is None:
-            assignedStaffId = None
-
+            response = {
+                "message": "Assigned staff ID is required.",
+            }
+            return jsonify(response), 400
+            
         status = (
             TrekStatus.APPROVED
             if data.get("status") == TrekStatus.APPROVED.value
@@ -191,6 +195,11 @@ def add_trek():
             if not staff_member:
                 response = {
                     "message": "The assigned staff member does not exist.",
+                }
+                return jsonify(response), 400
+            if staff_member.Profile_status != StaffStatus.APPROVED:
+                response = {
+                    "message": "Only approved staff can be assigned to treks.",
                 }
                 return jsonify(response), 400
 
@@ -253,6 +262,8 @@ def add_trek():
         }
         return jsonify(response), 500
 
+
+# get trek details for edit form or save updated trek info
 @admin_bp.route("/edittrek/<int:trek_id>", methods=["GET", "POST"])
 @jwt_required()
 @role_required(UserRole.ADMIN)
@@ -326,6 +337,11 @@ def edit_trek(trek_id):
                         "message": "The assigned staff member does not exist.",
                     }
                     return jsonify(response), 400
+                if staff_member.Profile_status != StaffStatus.APPROVED:
+                    response = {
+                        "message": "Only approved staff can be assigned to treks.",
+                    }
+                    return jsonify(response), 400
 
             trek.assigned_staff_id = (
                 int(assigned_staff_id) if assigned_staff_id else None
@@ -385,7 +401,103 @@ def edit_trek(trek_id):
             return jsonify(response), 500
 
 
+# delete a trek when admin no longer needs it
+@admin_bp.route("/deletetrek/<int:trek_id>", methods=["POST"])
+@jwt_required()
+@role_required(UserRole.ADMIN)
+def delete_trek(trek_id):
+    try:
+        trek = TrekModel.query.get(trek_id)
+        if not trek:
+            return jsonify({"message": "Trek not found."}), 404
+
+        trek_name = trek.name
+        db.session.delete(trek)
+        db.session.commit()
+
+        return jsonify(
+            {
+                "message": f"Trek '{trek_name}' deleted successfully.",
+                "trek_id": trek_id,
+            }
+        ), 200
+
+    except Exception as e:
+        db.session.rollback()
+        print(f"Error occurred while deleting the trek: {e}")
+        return jsonify({"message": "An error occurred while deleting the trek."}), 500
+
+
 # ManageStaff routes
+
+
+# admin creates a new staff account (starts as pending)
+@admin_bp.route("/create_staff", methods=["POST"])
+@jwt_required()
+@role_required(UserRole.ADMIN)
+def create_staff():
+    try:
+        data = request.get_json(silent=True) or {}
+
+        username = (data.get("username") or "").strip()
+        email = (data.get("email") or "").strip()
+        phone = (data.get("phone") or "").strip()
+        password = (data.get("password") or "").strip()
+        experience = data.get("experience", 0)
+        address = (data.get("address") or "").strip() or None
+        contact_number = (data.get("contact_number") or "").strip() or None
+        staff_bio = (data.get("staff_bio") or "").strip() or None
+
+        if not username or not email or not phone or not password:
+            return jsonify({"message": "Username, email, phone, and password are required."}), 400
+
+        if UserModel.query.filter_by(email=email).first():
+            return jsonify({"message": "A user with this email already exists."}), 400
+
+        if UserModel.query.filter_by(phone=phone).first():
+            return jsonify({"message": "A user with this phone number already exists."}), 400
+
+        user = UserModel(
+            username=username,
+            email=email,
+            phone=phone,
+            role=UserRole.STAFF.value,
+            is_active=False,
+        )
+        user.set_password(password)
+        db.session.add(user)
+        db.session.flush()
+
+        staff_profile = StaffModel(
+            user_id=user.id,
+            experience=int(experience) if experience is not None else 0,
+            address=address,
+            contact_number=contact_number,
+            staff_bio=staff_bio,
+            Profile_status=StaffStatus.PENDING,
+        )
+        db.session.add(staff_profile)
+        db.session.commit()
+
+        return jsonify(
+            {
+                "message": "Staff account created successfully. Approve the account before they can log in.",
+                "staff": {
+                    "user_id": user.id,
+                    "staff_id": staff_profile.id,
+                    "username": user.username,
+                    "phone": user.phone,
+                    "email": user.email,
+                    "status": staff_profile.Profile_status.value,
+                    "is_active": user.is_active,
+                },
+            }
+        ), 201
+
+    except Exception as e:
+        db.session.rollback()
+        print(f"Error occurred while creating staff member: {e}")
+        return jsonify({"message": "An error occurred while creating the staff member."}), 500
 
 
 # get all staff members
@@ -556,9 +668,23 @@ def update_trekker_status(trekker_id, action):
             trekker_user.is_blacklisted = False
             trekker_user.is_active = True
             trekker_user.blacklisted_reason = None
+        elif action.lower() == "deactivate":
+            if trekker_user.is_blacklisted:
+                response = {
+                    "message": "Cannot deactivate a blacklisted trekker. Remove blacklist first.",
+                }
+                return jsonify(response), 400
+            trekker_user.is_active = False
+        elif action.lower() == "reactivate":
+            if trekker_user.is_blacklisted:
+                response = {
+                    "message": "Cannot reactivate a blacklisted trekker. Remove blacklist first.",
+                }
+                return jsonify(response), 400
+            trekker_user.is_active = True
         else:
             response = {
-                "message": "Invalid action. Use 'blacklist' or 'deblacklist'.",
+                "message": "Invalid action. Use 'blacklist', 'deblacklist', 'deactivate', or 'reactivate'.",
             }
             return jsonify(response), 400
 
@@ -616,7 +742,6 @@ def get_bookings():
                     if booking.booking_cancel_date
                     else None
                 ),
-                "booking_cancel_reason": booking.booking_cancel_reason,
             }
             for booking in bookings
         ]
@@ -640,6 +765,9 @@ def get_bookings():
 
 
 # report generation routes
+
+
+# pull full admin report with trek/booking/revenue breakdown
 @admin_bp.route("/report", methods=["GET"])
 @jwt_required()
 @role_required(UserRole.ADMIN)

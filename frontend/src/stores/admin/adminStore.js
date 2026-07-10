@@ -7,14 +7,17 @@ const flashStore = useFlashStore();
 
 export const useAdminStore = defineStore("Admin", () => {
 
-    //State variables
+    // state
     const admin = ref(null);
 
     const dashboardData = ref(null);
 
     const loadingAdmin = ref(false);
 
-    // Actions
+    const report = ref(null);
+    const loadingReport = ref(false);
+
+    // actions
     const fetchAdminData = async () => {
         
         // if data already exists, no need to fetch again
@@ -38,20 +41,39 @@ export const useAdminStore = defineStore("Admin", () => {
     }
 
 
+    async function fetchReport() {
+        loadingReport.value = true;
+
+        try {
+            const { data } = await axiosInstance.get("/admin/report");
+            report.value = data;
+        } catch (error) {
+            flashStore.show(
+                error.response?.data?.message || "Failed to load report.",
+                "error"
+            );
+        } finally {
+            loadingReport.value = false;
+        }
+    }
+
     function resetAdminData() {
         admin.value = null;
         dashboardData.value = null;
         loadingAdmin.value = false;
+        report.value = null;
+        loadingReport.value = false;
     }
 
     return {
-        // State
         admin,
         loadingAdmin,
         dashboardData,
+        report,
+        loadingReport,
 
-        //Actions
         fetchAdminData,
+        fetchReport,
         resetAdminData
 
     }

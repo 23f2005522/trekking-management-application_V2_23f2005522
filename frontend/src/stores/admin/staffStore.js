@@ -8,18 +8,16 @@ export const useStaffStore = defineStore("adminStaff", () => {
 
     const flashStore = useFlashStore();
 
-    // State variables
+    // state
     const loadingStaffs = ref(false);
     const allStaffs = ref([]);
     const staffsearchQuery = ref("");
 
     const selectedStaffId = ref(null);
-
-    // moved in from the modal
     const selectedStatus = ref("");
     const reason = ref("");
 
-    //gettres
+    // getters
     const filteredStaffs = computed(() => {
         const query = staffsearchQuery.value.trim().toLowerCase();
         if (!query) return allStaffs.value;
@@ -29,7 +27,7 @@ export const useStaffStore = defineStore("adminStaff", () => {
                 staff.username.toLowerCase().includes(query) ||
                 staff.email.toLowerCase().includes(query) ||
                 staff.status.toLowerCase().includes(query) ||
-                staff.user_id == String(query)
+                staff.staff_id == String(query)
             );
         });
 
@@ -58,7 +56,6 @@ export const useStaffStore = defineStore("adminStaff", () => {
     })
 
     // whenever the selected staff changes, sync the form fields
-    // (this replaces the watch that used to live inside manageStaffModal.vue)
     watch(
         selectedStaff,
         (newVal) => {
@@ -73,7 +70,7 @@ export const useStaffStore = defineStore("adminStaff", () => {
         { immediate: true },
     );
 
-    // Actions
+    // actions
     async function allFetchStaffs() {
         loadingStaffs.value = true;
         try {
@@ -101,7 +98,6 @@ export const useStaffStore = defineStore("adminStaff", () => {
 
             flashStore.show(response.data.message || "Staff updated successfully.", "success");
 
-            //refresh the staff list after editing
             await allFetchStaffs();
 
         } catch (error) {
@@ -110,9 +106,20 @@ export const useStaffStore = defineStore("adminStaff", () => {
         }
     }
 
+    async function createStaff(staffData) {
+        try {
+            const response = await axiosInstance.post("/admin/create_staff", staffData);
+            flashStore.show(response.data.message || "Staff created successfully.", "success");
+            await allFetchStaffs();
+            return response.data;
+        } catch (error) {
+            flashStore.show(error.response?.data?.message || "Failed to create staff.", "error");
+            throw error;
+        }
+    }
+
 
     return {
-        // State variables
         allStaffs,
         loadingStaffs,
         staffsearchQuery,
@@ -122,17 +129,16 @@ export const useStaffStore = defineStore("adminStaff", () => {
         selectedStatus,
         reason,
 
-        // Getters
         filteredStaffs,
         approvedStaffs,
         rejectedStaffs,
         pendingStaffs,
         blacklistedStaffs,
 
-        // Actions
         allFetchStaffs,
         fetchStaffs,
-        handelEditStaff
+        handelEditStaff,
+        createStaff
 
     }
 

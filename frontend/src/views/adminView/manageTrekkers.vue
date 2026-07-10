@@ -25,7 +25,7 @@ const handleTrekkerSelection = (id) => {
 </script>
 
 <template>
-  <div class="col p-4">
+  <div>
     <ManageTrekkerModal/>
 
     <!-- Heading -->

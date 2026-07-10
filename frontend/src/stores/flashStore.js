@@ -3,7 +3,7 @@ import { reactive } from "vue";
 
 export const useFlashStore = defineStore("flash", () => {
 
-    // State
+    // state
     const state = reactive({
         message: "",
         type: "success",
@@ -11,7 +11,7 @@ export const useFlashStore = defineStore("flash", () => {
 
     let timer = null;
 
-    // Action
+    // actions
     function show(message, type = "success", duration = 3000) {
 
         state.message = message;

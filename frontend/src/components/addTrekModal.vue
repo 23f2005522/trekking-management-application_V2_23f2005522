@@ -1,14 +1,11 @@
 <script setup>
 import { Modal } from 'bootstrap'
+import { onMounted, ref } from 'vue'
 import { useTrekStore } from '@/stores/admin/trekStore'
-import { onMounted, onUnmounted, ref } from 'vue'
-import axiosInstance from '../utils/axioUtil'
-import { useFlashStore } from '@/stores/flashStore'
-import { hideBootstrapModal, registerModalCleanup } from '@/utils/bootstrapModal'
+import { useStaffStore } from '@/stores/admin/staffStore'
 
 const trekStore = useTrekStore()
-const flashStore = useFlashStore()
-let cleanupModal = () => {}
+const staffStore = useStaffStore()
 const fromData = ref({
   name: '',
   location: '',
@@ -24,23 +21,17 @@ const fromData = ref({
 })
 
 onMounted(() => {
-  cleanupModal = registerModalCleanup('addNewTrekModal')
-})
-
-onUnmounted(() => {
-  cleanupModal()
+  staffStore.fetchStaffs()
 })
 
 const handleAddTrek = async (e) => {
   e.preventDefault()
-  console.log(fromData.value)
   try {
-    await axiosInstance.post('/admin/addtrek', fromData.value)
-    trekStore.fetchTreks()
-    flashStore.show('Trek added successfully', 'success')
-    hideBootstrapModal('addNewTrekModal')
-  } catch (error) {
-    flashStore.show(error?.response?.data?.message || 'Failed to add trek', 'error')
+    await trekStore.addTrek(fromData.value)
+    const modalEl = document.getElementById('addNewTrekModal')
+    if (modalEl) Modal.getOrCreateInstance(modalEl).hide()
+  } catch {
+    // trekStore already shows flash on failure
   }
 }
 </script>
@@ -185,12 +176,19 @@ const handleAddTrek = async (e) => {
               <div class="col-md-6">
                 <label class="form-label">Assign Staff</label>
 
-                <input
-                  v-model="fromData.assignedStaffId"
-                  type="text"
-                  placeholder="Staff Id"
-                  class="form-control"
-                />
+                <select v-model="fromData.assignedStaffId" class="form-select" required>
+                  <option value="" disabled>Select approved staff</option>
+                  <option
+                    v-for="staff in staffStore.approvedStaffs"
+                    :key="staff.staff_id"
+                    :value="staff.staff_id"
+                  >
+                    {{ staff.username }} (ID: {{ staff.staff_id }})
+                  </option>
+                </select>
+                <small v-if="staffStore.approvedStaffs.length === 0" class="text-muted">
+                  No approved staff available. Approve a staff account first.
+                </small>
               </div>
             </div>
           </form>

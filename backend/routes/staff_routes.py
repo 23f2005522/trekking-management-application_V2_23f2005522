@@ -7,7 +7,26 @@ from model.model import *
 staff_bp = Blueprint("staff_routes", __name__, url_prefix="/api/staff")
 
 
-# Staff dashboard route
+# small helper to turn staff user into json for frontend
+def _staff_profile_json(user):
+    staff_profile = user.staff_profile
+    joining_date = staff_profile.joining_date
+
+    return {
+        "user_id": user.id,
+        "username": user.username,
+        "email": user.email,
+        "phone": user.phone,
+        "role": "staff",
+        "experience": staff_profile.experience,
+        "joining_date": joining_date.strftime("%Y-%m-%d") if joining_date else None,
+        "address": staff_profile.address,
+        "bio": staff_profile.staff_bio,
+        "profile_status": staff_profile.Profile_status.value,
+    }
+
+
+# load staff dashboard with assigned treks and quick stats
 @staff_bp.route("/dashboard")
 @jwt_required()
 @role_required(UserRole.STAFF)
@@ -44,17 +63,7 @@ def dashboard():
             }
         )
 
-    staff_json = {
-        "user_id": user.id,
-        "username": user.username,
-        "email": user.email,
-        "phone": user.phone,
-        "experience": staff_profile.experience,
-        "joining_date": staff_profile.joining_date,
-        "address": staff_profile.address,
-        "bio": staff_profile.staff_bio,
-        "profile_status": staff_profile.Profile_status.value,
-    }
+    staff_json = _staff_profile_json(user)
 
     return jsonify(
         {
@@ -65,9 +74,28 @@ def dashboard():
     )
 
 
+# view logged in staff profile (updates are admin only)
+@staff_bp.route("/profile", methods=["GET"])
+@jwt_required()
+@role_required(UserRole.STAFF)
+def get_staff_profile():
+    user_id = int(get_jwt_identity())
+    user = UserModel.query.get(user_id)
+
+    if not user:
+        return jsonify({"message": "User not found"}), 404
+
+    return jsonify(
+        {
+            "message": "Staff profile fetched successfully.",
+            "staff_profile": _staff_profile_json(user),
+        }
+    )
+
+
 # Treks Related Routes
 
-# get all the treks assigned to the logged-in staff
+# get all treks assigned to the logged in staff member
 @staff_bp.route("/treks")
 @jwt_required()
 @role_required(UserRole.STAFF)
@@ -111,7 +139,7 @@ def get_assigned_treks():
     return jsonify({"assigned_treks": assigned_treks_list_json}), 200
 
 
-# get a specific trek assigned to the logged-in staff
+# get one assigned trek with full details
 @staff_bp.route("/treks/<int:trek_id>")
 @jwt_required()
 @role_required(UserRole.STAFF)
@@ -136,6 +164,10 @@ def get_assigned_trek(trek_id):
     if trek not in assigned_treks:
         return jsonify({"message": "Trek not assigned to staff"}), 404
     
+    total_participants = sum(
+        1 for booking in trek.bookings if booking.status == BookingStatus.BOOKED
+    )
+
     trek_json = {
         "id": trek.id,
         "user_staff_id": user.id,
@@ -143,17 +175,19 @@ def get_assigned_trek(trek_id):
         "name": trek.name,
         "location": trek.location,
         "difficulty": trek.difficulty.value,
+        "duration": trek.duration,
         "status": trek.status.value,
         "starting_date": trek.starting_at.strftime("%Y-%m-%d"),
         "ending_date": trek.ending_at.strftime("%Y-%m-%d"),
         "total_slots": trek.total_slots,
         "available_slots": trek.available_slots,
+        "total_participants": total_participants,
     }
 
     return jsonify({"trek": trek_json}), 200
 
 
-# get all the participants of a specific trek assigned to the logged-in staff
+# list all participants booked on a specific assigned trek
 @staff_bp.route("/treks/<int:trek_id>/participants")
 @jwt_required()
 @role_required(UserRole.STAFF)
@@ -204,7 +238,7 @@ def get_trek_participants(trek_id):
 
 
 
-# update the status of a specific trek 
+# change trek status (open, closed, ongoing, completed etc)
 @staff_bp.route("/treks/<int:trek_id>/status", methods=["POST"])
 @jwt_required()
 @role_required(UserRole.STAFF)
@@ -227,9 +261,9 @@ def update_assigned_trek_status(trek_id):
 
     data = request.get_json(silent=True) or {}
     new_status = str(data.get("status", "")).lower()
+    current_status = trek.status.value
 
     allowed_statuses = {
-        TrekStatus.PENDING.value,
         TrekStatus.OPEN.value,
         TrekStatus.ONGOING.value,
         TrekStatus.CLOSED.value,
@@ -240,25 +274,35 @@ def update_assigned_trek_status(trek_id):
         return (
             jsonify(
                 {
-                    "message": "Invalid status. Use 'pending', 'open', 'ongoing', 'closed', or 'completed'."
+                    "message": "Invalid status. Use 'open', 'ongoing', 'closed', or 'completed'."
                 }
             ),
             400,
         )
 
-    # if the status is "completed" then update the booking status of all the participants in that trek to "completed" and also update the payment status of all the participants in that trek to "paid"
+    if new_status == TrekStatus.COMPLETED.value and current_status != TrekStatus.ONGOING.value:
+        return (
+            jsonify(
+                {"message": "Trek must be marked ongoing before it can be completed."}
+            ),
+            400,
+        )
+
+    if new_status == TrekStatus.ONGOING.value and current_status not in (
+        TrekStatus.OPEN.value,
+        TrekStatus.CLOSED.value,
+    ):
+        return (
+            jsonify(
+                {"message": "Trek must be open or closed before marking ongoing."}
+            ),
+            400,
+        )
+
     if new_status == TrekStatus.COMPLETED.value:
         for booking in trek.bookings:
             if booking.status == BookingStatus.BOOKED:
                 booking.status = BookingStatus.COMPLETED
-                booking.payment_status = PaymentStatus.COMPLETED
-    
-    if new_status == TrekStatus.OPEN.value: # if the status is "open" then update the payment status of all the participants in that trek to "pending"
-        for booking in trek.bookings:
-            booking.status = BookingStatus.BOOKED
-            booking.payment_status = PaymentStatus.PENDING
-            
-    
 
     try:
         trek.status = TrekStatus(new_status) # update the status of the trek to the new status as normal 
@@ -291,7 +335,7 @@ def update_assigned_trek_status(trek_id):
         return jsonify({"message": "An error occurred while updating trek status."}), 500
 
 
-# update the available slots of a specific trek assigned to the logged-in staff
+# update available slots on an assigned trek
 @staff_bp.route("/treks/<int:trek_id>/slots", methods=["POST"])
 @jwt_required()
 @role_required(UserRole.STAFF)
@@ -366,7 +410,7 @@ def update_assigned_trek_slots(trek_id):
         return jsonify({"message": "An error occurred while updating trek slots."}), 500
 
 
-# update the payment status of a specific participant in a trek assigned to the logged-in staff form pending to paid and vice versa
+# toggle participant payment from pending to paid (or back)
 @staff_bp.route("/treks/<int:trek_id>/participants/<int:booking_id>/payment", methods=["POST"])
 @jwt_required()
 @role_required(UserRole.STAFF)

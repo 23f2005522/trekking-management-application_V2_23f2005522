@@ -1,7 +1,8 @@
 <script setup>
-import { onMounted, onUnmounted, watch } from 'vue'
+import { onMounted, watch } from 'vue'
+import { Modal } from 'bootstrap'
 import { useTrekStore } from '@/stores/admin/trekStore'
-import { hideBootstrapModal, registerModalCleanup } from '@/utils/bootstrapModal'
+import { useStaffStore } from '@/stores/admin/staffStore'
 
 const props = defineProps({
   trekId: {
@@ -12,21 +13,18 @@ const props = defineProps({
 })
 
 const trekStore = useTrekStore()
-let cleanupModal = () => {}
+const staffStore = useStaffStore()
 
 onMounted(() => {
-  cleanupModal = registerModalCleanup('editTrekModal')
-})
-
-onUnmounted(() => {
-  cleanupModal()
+  staffStore.fetchStaffs()
 })
 
 const handleSaveTrek = async () => {
   if (!trekStore.editingTrek) return
 
   await trekStore.updateTrek(trekStore.editingTrek.id, trekStore.editingTrek)
-  hideBootstrapModal('editTrekModal')
+  const modalEl = document.getElementById('editTrekModal')
+  if (modalEl) Modal.getOrCreateInstance(modalEl).hide()
 }
 
 //selectedTrekIdAndFire
@@ -189,14 +187,22 @@ watch(
 
                   <!-- Assigned Staff -->
                   <div class="col-md-6">
-                    <label class="form-label">Assign Staff ID</label>
+                    <label class="form-label">Assign Staff</label>
 
-                    <input
+                    <select
                       v-model="trekStore.editingTrek.assigned_staff_id"
-                      type="text"
-                      placeholder="Staff Id"
-                      class="form-control"
-                    />
+                      class="form-select"
+                      required
+                    >
+                      <option value="" disabled>Select approved staff</option>
+                      <option
+                        v-for="staff in staffStore.approvedStaffs"
+                        :key="staff.staff_id"
+                        :value="staff.staff_id"
+                      >
+                        {{ staff.username }} (ID: {{ staff.staff_id }})
+                      </option>
+                    </select>
                   </div>
 
                   <!-- Status -->

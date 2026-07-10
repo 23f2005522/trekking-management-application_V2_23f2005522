@@ -95,6 +95,11 @@ const approuter = {
           path: 'participants',
           name: 'staffParticipants',
           component: () => import("@/views/staffView/StaffParticipants.vue")
+        },
+        {
+          path: 'profile',
+          name: 'staffProfile',
+          component: () => import("@/views/staffView/StaffProfile.vue")
         }
       ]
     },
@@ -152,7 +157,7 @@ const approuter = {
 const router = createRouter(approuter)
 
 // prototected routes
-router.beforeEach(async (to) => {
+router.beforeEach(async (to) => { // "to" is the route object
 
   const token = localStorage.getItem("access_token")
   const role = localStorage.getItem("role")
@@ -175,6 +180,17 @@ router.beforeEach(async (to) => {
   }
 
   return true
+})
+
+
+// cleanup modal and offcanvas artifacts
+router.afterEach(() => {
+  document.querySelectorAll('.offcanvas-backdrop, .modal-backdrop').forEach((el) => el.remove())
+  document.querySelectorAll('.offcanvas.show').forEach((el) => el.classList.remove('show'))
+  document.body.classList.remove('offcanvas-open', 'modal-open')
+  document.body.style.removeProperty('padding-right')
+  document.body.style.removeProperty('overflow')
+  window.scrollTo(0, 0)
 })
 
 export default router

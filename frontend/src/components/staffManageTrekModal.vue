@@ -1,8 +1,8 @@
 <script setup>
-import { onMounted, onUnmounted, ref, watch } from 'vue'
-import axiosInstance from '@/utils/axioUtil'
-import { useFlashStore } from '@/stores/flashStore'
-import { hideBootstrapModal, registerModalCleanup } from '@/utils/bootstrapModal'
+import { computed, ref, watch } from 'vue'
+import { Modal } from 'bootstrap'
+import { storeToRefs } from 'pinia'
+import { userStaffStore } from '@/stores/staff/staffStore'
 
 const emit = defineEmits(['updated'])
 
@@ -17,20 +17,16 @@ const props = defineProps({
   },
 })
 
-const flashStore = useFlashStore()
+const staffStore = userStaffStore()
+const { managingTrek, loadingManagingTrek, savingTrekStatus } = storeToRefs(staffStore)
+
 const selectedStatus = ref('open')
-const trek = ref(null)
-const loadingTrek = ref(false)
-const savingStatus = ref(false)
-let cleanupModal = () => {}
 
-onMounted(() => {
-  cleanupModal = registerModalCleanup(props.modalId)
-})
+const trek = computed(() => managingTrek.value)
+const loadingTrek = computed(() => loadingManagingTrek.value)
+const savingStatus = computed(() => savingTrekStatus.value)
 
-onUnmounted(() => {
-  cleanupModal()
-})
+const canMarkCompleted = computed(() => trek.value?.status === 'ongoing')
 
 const getStatusBadgeClass = (status) => {
   const normalizedStatus = String(status || '').toLowerCase()
@@ -51,20 +47,16 @@ watch(
   () => props.trekId,
   async (trekId) => {
     if (!trekId) {
-      trek.value = null
+      await staffStore.fetchTrekById(null)
       selectedStatus.value = 'open'
       return
     }
 
-    loadingTrek.value = true
-
     try {
-      const { data } = await axiosInstance.get(`/staff/treks/${trekId}`)
-      trek.value = data.trek
-      selectedStatus.value = data.trek?.status || 'open'
-      return
-    } finally {
-      loadingTrek.value = false
+      const loadedTrek = await staffStore.fetchTrekById(trekId)
+      selectedStatus.value = loadedTrek?.status || 'open'
+    } catch {
+      selectedStatus.value = 'open'
     }
   },
   { immediate: true }
@@ -73,25 +65,14 @@ watch(
 const saveTrekStatus = async () => {
   if (!props.trekId) return
 
-  savingStatus.value = true
-
   try {
-    const { data } = await axiosInstance.post(`/staff/treks/${props.trekId}/status`, {
-      status: selectedStatus.value,
-    })
-
-    trek.value = data.trek
-    selectedStatus.value = data.trek?.status || selectedStatus.value
-    flashStore.show(data.message || 'Trek status updated successfully.', 'success')
-    emit('updated', data.trek)
-    hideBootstrapModal(props.modalId)
-  } catch (error) {
-    flashStore.show(
-      error.response?.data?.message || 'Failed to update trek status.',
-      'error'
-    )
-  } finally {
-    savingStatus.value = false
+    const updatedTrek = await staffStore.updateTrekStatus(props.trekId, selectedStatus.value)
+    selectedStatus.value = updatedTrek?.status || selectedStatus.value
+    emit('updated', updatedTrek)
+    const modalEl = document.getElementById(props.modalId)
+    if (modalEl) Modal.getOrCreateInstance(modalEl).hide()
+  } catch {
+    // staffStore already shows flash on failure
   }
 }
 </script>
@@ -141,7 +122,7 @@ const saveTrekStatus = async () => {
             <div class="col-md-5">
               <div class="detail-card mb-3">
                 <div class="detail-label">Duration</div>
-                <div class="detail-value">4 Days</div>
+                <div class="detail-value">{{ trek.duration }} Days</div>
               </div>
 
               <div class="detail-card mb-3">
@@ -179,9 +160,11 @@ const saveTrekStatus = async () => {
               <option value="open">Open</option>
               <option value="ongoing">Ongoing</option>
               <option value="closed">Closed</option>
-              <option value="completed">Completed</option>
-              <option value="pending">Pending</option>
+              <option value="completed" :disabled="!canMarkCompleted">Completed</option>
             </select>
+            <small v-if="!canMarkCompleted" class="text-muted">
+              Mark trek as ongoing before completing it.
+            </small>
           </div>
         </div>
 

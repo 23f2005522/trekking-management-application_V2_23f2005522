@@ -51,8 +51,6 @@ const handleUpdateProfile = async () => {
     >
       <div class="card-body">
 
-        <!-- Avatar -->
-
         <div class="text-center mb-4">
 
           <div
@@ -74,8 +72,6 @@ const handleUpdateProfile = async () => {
 
         <div class="row g-3">
 
-          <!-- Username -->
-
           <div class="col-md-6">
             <label class="form-label">
               Username
@@ -87,8 +83,6 @@ const handleUpdateProfile = async () => {
               type="text"
             />
           </div>
-
-          <!-- Email -->
 
           <div class="col-md-6">
             <label class="form-label">
@@ -102,8 +96,6 @@ const handleUpdateProfile = async () => {
             />
           </div>
 
-          <!-- Phone -->
-
           <div class="col-md-6">
             <label class="form-label">
               Phone Number
@@ -115,8 +107,6 @@ const handleUpdateProfile = async () => {
               type="text"
             />
           </div>
-
-          <!-- Role -->
 
           <div class="col-md-6">
             <label class="form-label">
@@ -130,8 +120,6 @@ const handleUpdateProfile = async () => {
             />
           </div>
 
-          <!-- Active -->
-
           <div class="col-md-6">
             <label class="form-label">
               Account Status
@@ -144,8 +132,6 @@ const handleUpdateProfile = async () => {
             />
           </div>
 
-          <!-- Blacklisted -->
-
           <div class="col-md-6">
             <label class="form-label">
               Blacklisted
@@ -157,8 +143,6 @@ const handleUpdateProfile = async () => {
               disabled
             />
           </div>
-
-          <!-- Reason -->
 
           <div
             v-if="profileStore.profile.is_blacklisted"

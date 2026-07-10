@@ -4,18 +4,12 @@ import axiosInstance from "@/utils/axioUtil"
 
 export const useBookingStore = defineStore("booking", () => {
 
-    // =========================
-    // State
-    // =========================
-
+    // state
     const bookings = ref([])
     const loadingBookings = ref(false)
     const cancelBookingLoading = ref(false)
 
-    // =========================
-    // Actions
-    // =========================
-
+    // actions
     async function fetchBookings() {
 
         loadingBookings.value = true
@@ -46,7 +40,6 @@ export const useBookingStore = defineStore("booking", () => {
                 `/trekker/deletebooking/${bookingId}`
             )
 
-            // Refresh bookings after successful cancellation
             await fetchBookings()
 
             return response.data
@@ -62,12 +55,10 @@ export const useBookingStore = defineStore("booking", () => {
 
     return {
 
-        // State
         bookings,
         loadingBookings,
         cancelBookingLoading,
 
-        // Actions
         fetchBookings,
         cancelBooking,
 

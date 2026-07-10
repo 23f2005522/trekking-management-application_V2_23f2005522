@@ -1,7 +1,8 @@
 <script setup>
-import { onMounted, ref } from 'vue'
+import { onMounted } from 'vue'
 import { useStaffStore } from '@/stores/admin/staffStore'
 import ManagaStaffModal from '@/components/managaStaffModal.vue'
+import CreateStaffModal from '@/components/createStaffModal.vue'
 
 const staffStore = useStaffStore()
 
@@ -21,14 +22,29 @@ const handelStaffSelection = (staffId) => {
 </script>
 
 <template>
-  <div class="col p-4">
-    <!-- modal -->
+  <div>
+    <!-- modals -->
     <ManagaStaffModal />
+    <CreateStaffModal />
 
     <!-- Heading -->
 
-    <h1 class="fw-bold">Manage Staff</h1>
-    <p class="text-muted">Review staff registration requests and manage staff accounts.</p>
+    <div class="d-flex justify-content-between align-items-start mb-2">
+      <div>
+        <h1 class="fw-bold mb-1">Manage Staff</h1>
+        <p class="text-muted mb-0">Create staff accounts and manage approval status.</p>
+      </div>
+
+      <button
+        class="btn btn-success"
+        data-bs-toggle="modal"
+        data-bs-target="#createStaffModal"
+      >
+        <i class="bi bi-person-plus me-1"></i>
+        Add Staff
+      </button>
+    </div>
+
     <hr />
 
     <div>
@@ -46,7 +62,7 @@ const handelStaffSelection = (staffId) => {
                   v-model="staffStore.staffsearchQuery"
                   type="text"
                   class="form-control border-start-0"
-                  placeholder="Search by staff name, email, status or ID..."
+                  placeholder="Search by staff name, email, status or Staff ID..."
                 />
               </div>
             </div>

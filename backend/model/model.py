@@ -81,8 +81,7 @@ class TimeStampMixin(db.Model):
         db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow
     )
 
-
-# BaseModel
+#BaseModel
 class BaseModel(TimeStampMixin, db.Model):
     __abstract__ = True  ## means this class is not a table in the database, but it can be inherited by other models to have common fields [new concept of abstract base class in SQLAlchemy]
     id = db.Column(db.Integer, primary_key=True)
@@ -104,9 +103,9 @@ class UserModel(BaseModel):
     blacklisted_reason = db.Column(db.String(500), nullable=True)
 
     bookings = db.relationship(
-        "BookingModel",  ## here we specify the python model name not the table name
-        backref=db.backref("user", lazy=True), # gives booking132.user to access the user who made the booking
-        foreign_keys="BookingModel.user_id",  # which foreign key should be used
+        "BookingModel",
+        backref=db.backref("user", lazy=True),
+        foreign_keys="BookingModel.user_id",
         lazy=True,
         cascade="all, delete-orphan",  # if a user is deleted, all their bookings will be deleted as well
     )
@@ -118,14 +117,7 @@ class UserModel(BaseModel):
         cascade="all, delete-orphan",
     )
 
-    reviews = db.relationship(
-        "TrekReviewModel",
-        backref=db.backref("user", lazy=True),
-        foreign_keys="TrekReviewModel.user_id",
-        lazy=True,
-        cascade="all, delete-orphan",
-    )
-    
+
     ### MAD2 - PJ extra relationships using old backref style
     notifications = db.relationship(
         "NotificationModel",
@@ -143,16 +135,6 @@ class UserModel(BaseModel):
         cascade="all, delete-orphan",
     )
     ###
-
-    # methods to check user roles
-    def is_admin(self):
-        return self.role == UserRole.ADMIN
-
-    def is_staff(self):
-        return self.role == UserRole.STAFF
-
-    def is_trekker(self):
-        return self.role == UserRole.TREKKER
 
     # methods to set and check password
     def set_password(self, password):
@@ -197,7 +179,7 @@ class TrekModel(BaseModel):
     name = db.Column(db.String(100), nullable=False)
     location = db.Column(db.String(100), nullable=False)
     difficulty = db.Column(db.Enum(TrekDifficulty), nullable=False)
-    duration = db.Column(db.Integer, nullable=False)  # in days
+    duration = db.Column(db.Integer, nullable=False)
     total_slots = db.Column(db.Integer, nullable=False, default=10)
     available_slots = db.Column(db.Integer, nullable=False, default=10)
 
@@ -215,28 +197,17 @@ class TrekModel(BaseModel):
     
     bookings = db.relationship(
         "BookingModel", backref=db.backref("trek", lazy=True), lazy=True, cascade="all, delete-orphan"
-    )  # one to many relationship with BookingModel
-    reviews = db.relationship(
-        "TrekReviewModel", backref=db.backref("trek", lazy=True), lazy=True, cascade="all, delete-orphan"
-    )  # one to many relationship with ReviewModel
+    )
 
     __table_args__ = (
         db.CheckConstraint(
             "available_slots <= total_slots", name="check_available_slots"
         ),
-        db.CheckConstraint("starting_at < ending_at", name="ending before start constraint"), # fixed constraint check using old v1 column names and name string
+        db.CheckConstraint("starting_at < ending_at", name="ending before start constraint"),
         db.CheckConstraint("price >= 0", name="zero_price_constraint"),
     )
 
-    # computed property to calculate available slots
-    @property  # @property decorator is used to define a method as a property, so that it can be accessed like an attribute.
-    def calculate_available_slots(self):
-        already_blooked = [b for b in self.bookings if b.status == BookingStatus.BOOKED]
-        booked_slots = len(already_blooked)
-        return self.total_slots - booked_slots
 
-
-# Booking Model
 class BookingModel(BaseModel):
     __tablename__ = "bookings"
 
@@ -264,18 +235,6 @@ class BookingModel(BaseModel):
         ),  ## only one user can book a trek at a time
     )
 
-
-# Review Model
-class TrekReviewModel(BaseModel):
-
-    __tablename__ = "reviews"
-
-    user_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=False)
-    trek_id = db.Column(db.Integer, db.ForeignKey("treks.id"), nullable=False)
-    rating = db.Column(db.Integer, nullable=False, default=5)
-    comment = db.Column(db.String(500), nullable=True)
-
-    # relationships (automatically generated via backrefs on UserModel and TrekModel)
 
 
 ## MAD2PJ Models for Notification, ExportJob 
@@ -311,8 +270,6 @@ class ReportLogsModel(BaseModel):
     __tablename__ = "report_logs"
 
     type_of_report = db.Column(db.Enum(ReportType), nullable=False)
-    created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
-    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
     file_path = db.Column(db.String(200), nullable=True)
     status = db.Column(
         db.Enum(ExportStatus), default=ExportStatus.PENDING, nullable=False

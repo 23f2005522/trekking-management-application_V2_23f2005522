@@ -4,11 +4,12 @@ import axiosInstance from "@/utils/axioUtil"
 
 export const useProfileStore = defineStore("trekkerProfile", () => {
 
-    // State
+    // state
     const profile = ref(null)
     const loadingProfile = ref(false)
+    const updatingProfile = ref(false)
 
-    // Action
+    // actions
     async function fetchProfile() {
 
         loadingProfile.value = true
@@ -29,8 +30,6 @@ export const useProfileStore = defineStore("trekkerProfile", () => {
         }
 
     }
-
-    const updatingProfile = ref(false)
 
     async function updateProfile() {
 

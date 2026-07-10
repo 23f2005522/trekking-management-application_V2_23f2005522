@@ -4,11 +4,11 @@ import axiosInstance from "@/utils/axioUtil"
 
 export const useTrekHistoryStore = defineStore("trekHistory", () => {
 
-    // State
+    // state
     const history = ref([])
     const loadingHistory = ref(false)
 
-    // Action
+    // actions
     async function fetchHistory() {
 
         loadingHistory.value = true

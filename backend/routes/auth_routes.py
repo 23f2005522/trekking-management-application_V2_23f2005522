@@ -1,95 +1,64 @@
 from flask import Blueprint, jsonify, request
 from flask_jwt_extended import create_access_token, jwt_required, get_jwt
 from model.model import *
-from utils.auth_utility import role_required
 
 auth_bp = Blueprint("auth", __name__, url_prefix="/api/auth")
 
 
+# register a new trekker account (staff/admin cant sign up here)
 @auth_bp.route("/register", methods=["POST"])
 def register():
-    # Json data
-    data = request.get_json(silent=True)
-    username = data.get("username").strip() if data else None
-    email = data.get("email").strip() if data else None
-    phone = data.get("phone").strip() if data else None
-    password = data.get("password").strip() if data else None
-    role = data.get("role").strip() if data else None
+    data = request.get_json(silent=True) or {}
 
-    if not username or not email or not phone or not password or not role:
-        response = {"message": "All fields are required."}
+    username = (data.get("username") or "").strip()
+    email = (data.get("email") or "").strip()
+    phone = (data.get("phone") or "").strip()
+    password = (data.get("password") or "").strip()
+    role = (data.get("role") or "trekker").strip()
 
-        return jsonify(response), 400
+    if not username or not email or not phone or not password:
+        return jsonify({"message": "All fields are required."}), 400
+
+    if role == UserRole.ADMIN.value:
+        return jsonify({"message": "You cannot register as an admin."}), 403
+
+    if role == UserRole.STAFF.value:
+        return jsonify({
+            "message": "Trek staff accounts are created by the administrator only."
+        }), 403
+
+    if role != UserRole.TREKKER.value:
+        return jsonify({"message": "Invalid role. Only trekker registration is allowed."}), 400
 
     user_email_exists = UserModel.query.filter_by(email=email).first()
     user_phone_exists = UserModel.query.filter_by(phone=phone).first()
 
     if user_email_exists or user_phone_exists:
-        response = {"message": "User with this email or phone already exists."}
-        return jsonify(response), 400
-
-    if role == UserRole.ADMIN.value:
-        response = {"message": "You cannot register as an admin."}
-        return jsonify(response), 403  # forbidden error code
+        return jsonify({"message": "User with this email or phone already exists."}), 400
 
     try:
+        user = UserModel(
+            username=username, email=email, phone=phone, role=UserRole.TREKKER.value
+        )
+        user.set_password(password)
 
-        # for trekker registration
-        if role == UserRole.TREKKER.value:
-            user = UserModel(
-                username=username, email=email, phone=phone, role=UserRole.TREKKER.value
-            )
-            user.set_password(password)  # set password
+        db.session.add(user)
+        db.session.commit()
 
-            db.session.add(user)
-            db.session.commit()
-
-            response = {
-                "message": "User registered successfully.",
-                "user": {
-                    "id": user.id,
-                    "username": user.username,
-                    "email": user.email,
-                    "phone": user.phone,
-                    "role": user.role,
-                },
+        response = {
+            "message": "User registered successfully.",
+            "user": {
+                "id": user.id,
                 "username": user.username,
+                "email": user.email,
+                "phone": user.phone,
                 "role": user.role,
-            }
+            },
+            "username": user.username,
+            "role": user.role,
+        }
 
-            return jsonify(response), 201
-
-        # for trekStaff registration
-        elif role == UserRole.STAFF.value:
-
-            user = UserModel(
-                username=username, email=email, phone=phone, role=UserRole.STAFF.value
-            )
-            user.set_password(password)
-            db.session.add(user)
-            db.session.commit()
-            staff_profile = StaffModel(user_id=user.id)
-            db.session.add(staff_profile)
-            db.session.commit()
-
-            response = {
-                "message": "Staff registered successfully. Please wait for admin approval.",
-                "user": {
-                    "id": user.id,
-                    "username": user.username,
-                    "email": user.email,
-                    "phone": user.phone,
-                    "role": user.role,
-                },
-                "staff_profile": {
-                    "id": staff_profile.id,
-                    "user_id": staff_profile.user_id,
-                },
-                "username": user.username,
-                "role": user.role,
-            }
-
-            return jsonify(response), 201
+        return jsonify(response), 201
 
     except Exception as e:
         db.session.rollback()  # Rollback the session in case of an error
@@ -100,20 +69,17 @@ def register():
         return jsonify(response), 500
 
 
+# login with email password and role, returns jwt token
 @auth_bp.route("/login", methods=["POST"])
 def login():
+    data = request.get_json(silent=True) or {}
 
-    data = request.get_json(silent=True)
-    email = data.get("email").strip() if data else None
-    password = data.get("password").strip() if data else None
-    role = data.get("role").strip() if data else None
-
-    print(data)  # Debugging line to print the received data
+    email = (data.get("email") or "").strip()
+    password = (data.get("password") or "").strip()
+    role = (data.get("role") or "").strip()
 
     if not email or not password or not role:
-        response = {"message": "Email, password, and role are required fields."}
-
-        return jsonify(response), 400
+        return jsonify({"message": "Email, password, and role are required fields."}), 400
 
     user = UserModel.query.filter_by(email=email).first()
 
@@ -122,6 +88,14 @@ def login():
         response = {"message": "Invalid email or password or role."}
 
         return jsonify(response), 401  # unauthorized error code
+
+    if user.role == UserRole.TREKKER.value:
+        if not user.is_active:
+            response = {"message": "Account deactivated. Contact the administrator."}
+            return jsonify(response), 403
+        if user.is_blacklisted:
+            response = {"message": "Account blacklisted. Contact the administrator."}
+            return jsonify(response), 403
 
     # check if staff need approval or he was rejected by admin
     if user.role == UserRole.STAFF.value:
@@ -168,6 +142,7 @@ def login():
     return jsonify(response), 200
 
 
+# logout endpoint (frontend clears the token for now)
 @auth_bp.route("/logout", methods=["POST"])
 @jwt_required()
 def logout():
@@ -176,7 +151,8 @@ def logout():
     response = {"message": "Logout successful."}
     return jsonify(response), 200
 
-# to veriy the JWT token is valied
+
+# quick check if the logged in jwt token is still valid
 @auth_bp.route("/authme", methods=["GET"])
 @jwt_required()
 def verify():

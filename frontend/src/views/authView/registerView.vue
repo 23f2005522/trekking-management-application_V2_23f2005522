@@ -45,7 +45,7 @@ const handelRegister = async () => {
           <div class="card-body p-5">
             <h2 class="text-center mb-2">Trekking Management System</h2>
 
-            <p class="text-center text-muted mb-4">Create a new account</p>
+            <p class="text-center text-muted mb-4">Create a trekker account</p>
 
             <form @submit.prevent="handelRegister">
               <!-- Username -->
@@ -106,37 +106,6 @@ const handelRegister = async () => {
                   placeholder="Re-enter your password"
                   v-model="formData.confirmPassword"
                 />
-              </div>
-
-              <!-- Register As -->
-              <div class="mb-4">
-                <label class="form-label fw-bold"> Register As </label>
-
-                <div class="form-check">
-                  <input
-                    class="form-check-input"
-                    type="radio"
-                    name="role"
-                    id="trekker"
-                    checked
-                    v-model="formData.role"
-                  />
-
-                  <label class="form-check-label" for="trekker"> Trekker </label>
-                </div>
-
-                <div class="form-check">
-                  <input
-                    class="form-check-input"
-                    type="radio"
-                    name="role"
-                    id="staff"
-                    v-model="formData.role"
-                    value="staff"
-                  />
-
-                  <label class="form-check-label" for="staff"> Trek Staff </label>
-                </div>
               </div>
 
               <!-- Register Button -->

@@ -1,42 +1,24 @@
 <script setup>
-import { onMounted, ref } from 'vue'
-import axiosInstance from '@/utils/axioUtil'
+import { onMounted } from 'vue'
+import { useAdminStore } from '@/stores/admin/adminStore'
 import Loader from '@/components/Loader.vue'
-import { useFlashStore } from '@/stores/flashStore'
+import { storeToRefs } from 'pinia'
 
-const flashStore = useFlashStore()
+const adminStore = useAdminStore()
+const { report, loadingReport } = storeToRefs(adminStore)
 
-const loading = ref(false)
-const report = ref(null)
-
-async function fetchReport() {
-  loading.value = true
-
-  try {
-    const { data } = await axiosInstance.get('/admin/report')
-    report.value = data
-  } catch (error) {
-    flashStore.show(
-      error.response?.data?.message || 'Failed to load report.',
-      'error'
-    )
-  } finally {
-    loading.value = false
-  }
-}
-
-onMounted(fetchReport)
+onMounted(() => adminStore.fetchReport())
 </script>
 
 <template>
-  <div class="container-fluid py-4">
+  <div>
 
     <h2 class="fw-bold mb-4 d-flex align-items-center gap-2 text-dark">
       <i class="bi bi-graph-up-arrow text-primary"></i>
       Trekking Statistics & Reports
     </h2>
 
-    <Loader v-if="loading" />
+    <Loader v-if="loadingReport" />
 
     <div v-else-if="report">
 

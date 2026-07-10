@@ -2,7 +2,7 @@
   <!-- Toggle -->
 
   <button
-    class="btn btn-success m-3"
+    class="btn btn-success sidebar-toggle"
     type="button"
     data-bs-toggle="offcanvas"
     data-bs-target="#trekkerSidebar"
@@ -30,7 +30,7 @@
             :to="item.path"
             class="nav-link"
             :class="route.path === item.path ? 'bg-white text-success hover' : 'text-white'"
-            
+            @click="closeSidebar"
           >
             <i :class="[item.icon, 'me-2']"></i>
             {{ item.title }}
@@ -40,7 +40,7 @@
 
 
         <li class="nav-item mt-auto pt-3 border-top">
-          <div @click="logout" class="nav-link text-danger">
+          <div @click="handleLogout" class="nav-link text-danger">
             <i class="bi bi-box-arrow-right me-2"></i>
             Logout
           </div>
@@ -51,10 +51,37 @@
 </template>
 
 <script setup>
+import { Offcanvas } from 'bootstrap'
 import logout from '@/utils/logout'
 import { useRoute } from 'vue-router'
 
 const route = useRoute()
+
+const finishClose = (sidebar) => {
+  sidebar.classList.remove('show')
+  document.querySelectorAll('.offcanvas-backdrop').forEach((el) => el.remove())
+  document.body.classList.remove('offcanvas-open')
+  document.body.style.removeProperty('padding-right')
+  document.body.style.removeProperty('overflow')
+}
+
+const closeSidebar = () => {
+  const sidebar = document.getElementById('trekkerSidebar')
+  if (!sidebar) return
+
+  const instance = Offcanvas.getInstance(sidebar)
+  if (instance) {
+    sidebar.addEventListener('hidden.bs.offcanvas', () => finishClose(sidebar), { once: true })
+    instance.hide()
+  } else {
+    finishClose(sidebar)
+  }
+}
+
+const handleLogout = () => {
+  closeSidebar()
+  logout()
+}
 
 const paths = [
   {
@@ -84,3 +111,10 @@ const paths = [
   },
 ]
 </script>
+
+<style scoped>
+.sidebar-toggle {
+  margin: 1rem 0.25rem;
+  padding: 0.5rem 0.65rem;
+}
+</style>

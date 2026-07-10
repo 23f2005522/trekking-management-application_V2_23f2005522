@@ -3,6 +3,7 @@ import { ref, watch } from 'vue'
 import axiosInstance from '@/utils/axioUtil'
 
 export const useTrekStore = defineStore("trekkerTrek", () => {
+    // state
     const availableTreks = ref([])
     const filteredTreks = ref([]) // Note: Not currently used, but kept intact
     const loadingTreks = ref(false)
@@ -16,7 +17,6 @@ export const useTrekStore = defineStore("trekkerTrek", () => {
 
     const selectedTrek = ref(null)
 
-    // : Watching local 'filters' and calling local 'fetchTreks'
     watch(
         filters,
         () => {
@@ -25,6 +25,7 @@ export const useTrekStore = defineStore("trekkerTrek", () => {
         { deep: true }
     )
 
+    // actions
     async function fetchTreks() {
         loadingTreks.value = true // Set loading state
         try {
@@ -47,9 +48,7 @@ export const useTrekStore = defineStore("trekkerTrek", () => {
     }
 
 
-    //booking State
     const bookingLoading = ref(false)
-
 
     async function bookTrek() {
         if (!selectedTrek.value) {

@@ -52,7 +52,10 @@ export const userTrekkerStore = defineStore("Trekker", () => {
             flashStore.show(response.data.message, "success")
             await fetchAllTrekkers()
         } catch (error) {
-            flashStore.show("Failed to update trekker status.", "error")
+            flashStore.show(
+                error.response?.data?.message || "Failed to update trekker status.",
+                "error"
+            )
         }
 
     }
@@ -61,16 +64,13 @@ export const userTrekkerStore = defineStore("Trekker", () => {
 
 
     return {
-        // state
         allTrekkers,
         trekkersearchQuery,
         selectedTrekkerId,
 
-        // getters
         filteredTrekkers,
         selectedTrekker,
 
-        // actions
         fetchAllTrekkers,
         handleEditTrekker
 

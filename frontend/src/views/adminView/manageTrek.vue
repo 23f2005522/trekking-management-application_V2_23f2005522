@@ -38,7 +38,7 @@ const handleDelete = (id) => {
 </script>
 
 <template>
-  <div class="col p-4">
+  <div>
     <!-- ModalS -->
     <AddTrekModal />
     <EditTrekModal :trekId="selectedTrekID" />

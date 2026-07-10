@@ -10,7 +10,7 @@ onMounted(() => {
 </script>
 
 <template>
-  <div class="col p-4">
+  <div>
     <h1 class="fw-bold">Manage Bookings</h1>
     <p class="text-muted">View and manage all trek bookings.</p>
     <hr />

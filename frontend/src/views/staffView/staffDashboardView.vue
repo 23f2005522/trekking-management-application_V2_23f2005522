@@ -50,25 +50,16 @@ onMounted(() => {
 </script>
 
 <template>
-  <div class="container-fluid">
-    <div class="row">
-      <!-- Sidebar -->
-      <div class="col-auto p-0">
-        <StaffSidebar />
-      </div>
+  <div>
+    <h1 class="fw-bold">
+      My Dashboard
+    </h1>
 
-      <!-- Main -->
-      <div class="col p-4">
-        <h1 class="fw-bold">
-          My Dashboard
-        </h1>
+    <p class="text-muted">
+      Welcome back! {{ staffStore.staffProfile?.username }} Here's an overview of your assigned treks.
+    </p>
 
-        <p class="text-muted">
-          Welcome back! {{ staffStore.staffProfile?.username }} Here's an overview of your assigned treks.
-        </p>
-
-        <!-- Statistics -->
-        <div class="row g-4 mt-2">
+    <div class="row g-4 mt-2">
           <!-- Assigned Treks -->
           <div class="col-md-6 col-lg-4">
             <div class="card shadow-sm">
@@ -202,8 +193,6 @@ onMounted(() => {
             </table>
           </div>
         </div>
-      </div>
-    </div>
 
     <StaffManageTrekModal :trekId="selectedTrekId" @updated="staffStore.fetchDashboardData()" />
   </div>

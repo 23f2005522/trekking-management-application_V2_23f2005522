@@ -1,7 +1,6 @@
 <script setup>
-import { onMounted, onUnmounted } from 'vue'
+import { Modal } from 'bootstrap'
 import { useTrekStore } from '@/stores/admin/trekStore'
-import { hideBootstrapModal, registerModalCleanup } from '@/utils/bootstrapModal'
 
 
 const props = defineProps({
@@ -14,21 +13,13 @@ const props = defineProps({
 
 
 const trekStore = useTrekStore()
-let cleanupModal = () => {}
-
-onMounted(() => {
-  cleanupModal = registerModalCleanup('deleteTrekModal')
-})
-
-onUnmounted(() => {
-  cleanupModal()
-})
 
 const handleDelete = async () => {
   if (!props.trekId) return
 
   await trekStore.deleteTrek(props.trekId)
-  hideBootstrapModal('deleteTrekModal')
+  const modalEl = document.getElementById('deleteTrekModal')
+  if (modalEl) Modal.getOrCreateInstance(modalEl).hide()
 }
 
 
