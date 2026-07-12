@@ -2,8 +2,10 @@
 import { onMounted } from 'vue'
 import { storeToRefs } from 'pinia'
 import { userStaffStore } from '@/stores/staff/staffStore'
+import { useFlashStore } from '@/stores/flashStore'
 
 const staffStore = userStaffStore()
+const flashStore = useFlashStore()
 const { assignedTreks, updatingSlotsId } = storeToRefs(staffStore)
 
 const getStatusBadgeClass = (status) => {
@@ -37,17 +39,18 @@ const formatDisplayDate = (dateString) => {
 
 const updateAvailableSlots = async (trek) => {
   try {
-    await staffStore.updateTrekSlots(trek.id, trek.available_slots)
-  } catch {
-    // staffStore already shows flash on failure
+    const data = await staffStore.updateTrekSlots(trek.id, trek.available_slots)
+    flashStore.show(data?.message || 'Available slots updated successfully.', 'success')
+  } catch (error) {
+    flashStore.show(error.response?.data?.message || 'Failed to update available slots.', 'error')
   }
 }
 
 onMounted(async () => {
   try {
     await staffStore.fetchDashboardData()
-  } catch {
-    // staffStore already shows flash on failure
+  } catch (error) {
+    flashStore.show(error.response?.data?.message || 'Failed to load assigned treks.', 'error')
   }
 })
 </script>

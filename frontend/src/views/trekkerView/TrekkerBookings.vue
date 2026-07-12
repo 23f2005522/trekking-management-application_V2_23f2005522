@@ -13,7 +13,7 @@ onMounted(async () => {
   } catch (error) {
     flashStore.show(
       error.response?.data?.message || 'Failed to fetch bookings.',
-      'danger'
+      'error'
     )
   }
 })
@@ -28,7 +28,7 @@ async function handleCancelBooking(id) {
   } catch (error) {
     flashStore.show(
       error.response?.data?.message || 'Failed to cancel booking.',
-      'danger'
+      'error'
     )
   }
 }

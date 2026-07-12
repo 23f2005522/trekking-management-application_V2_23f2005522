@@ -1,22 +1,13 @@
 import axiosInstance from "@/utils/axioUtil";
 import { defineStore } from "pinia";
 import { computed, ref, } from "vue";
-import { useFlashStore } from "../flashStore";
-
 
 export const userTrekkerStore = defineStore("Trekker", () => {
 
-    const flashStore = useFlashStore();
-
-
-    // state
     const allTrekkers = ref([])
     const trekkersearchQuery = ref("")
-
     const selectedTrekkerId = ref(null)
 
-
-    // getters 
     const filteredTrekkers = computed(() => {
         const query = trekkersearchQuery.value.trim().toLowerCase();
         if (!query) return allTrekkers.value;
@@ -28,7 +19,6 @@ export const userTrekkerStore = defineStore("Trekker", () => {
                 trekker.user_id == String(query)
             );
         });
-
     });
 
     const selectedTrekker = computed(() => {
@@ -37,31 +27,19 @@ export const userTrekkerStore = defineStore("Trekker", () => {
         ) || null;
     })
 
-
-    // actions
     const fetchAllTrekkers = async () => {
         const { data } = await axiosInstance.get("/admin/trekkers")
         allTrekkers.value = data.trekkers
+        return data
     }
 
     const handleEditTrekker = async (userId, status, reason) => {
-        try {
-            const response = await axiosInstance.post(`/admin/trekkers/${userId}/${status}`, {
-                reason: reason
-            })
-            flashStore.show(response.data.message, "success")
-            await fetchAllTrekkers()
-        } catch (error) {
-            flashStore.show(
-                error.response?.data?.message || "Failed to update trekker status.",
-                "error"
-            )
-        }
-
+        const response = await axiosInstance.post(`/admin/trekkers/${userId}/${status}`, {
+            reason: reason
+        })
+        await fetchAllTrekkers()
+        return response.data
     }
-
-
-
 
     return {
         allTrekkers,
@@ -73,6 +51,5 @@ export const userTrekkerStore = defineStore("Trekker", () => {
 
         fetchAllTrekkers,
         handleEditTrekker
-
     }
 })

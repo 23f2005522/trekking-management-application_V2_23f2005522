@@ -2,8 +2,10 @@
 import { Offcanvas } from 'bootstrap'
 import logout from '../../utils/logout'
 import { useRoute } from 'vue-router'
+import { useFlashStore } from '@/stores/flashStore'
 
 const route = useRoute()
+const flashStore = useFlashStore()
 
 const finishClose = (sidebar) => {
   sidebar.classList.remove('show')
@@ -26,9 +28,12 @@ const closeSidebar = () => {
   }
 }
 
-const handleLogout = () => {
+const handleLogout = async () => {
   closeSidebar()
-  logout()
+  const result = await logout()
+  if (!result.success) {
+    flashStore.show(result.message, 'error')
+  }
 }
 
 const paths = [

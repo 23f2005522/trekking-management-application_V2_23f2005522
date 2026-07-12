@@ -69,6 +69,7 @@ class NotificationStatus(str, Enum):
 
 
 class ReportType(str, Enum):
+    TREKKING_HISTORY = "trekking_history"
     ANALYTICS = "analytics"
     MONTHLY = "monthly"
 

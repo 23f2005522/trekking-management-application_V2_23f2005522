@@ -1,11 +1,12 @@
 <script setup>
-import { Modal } from 'bootstrap'
-import { onMounted, ref } from 'vue'
+import { onMounted, onUnmounted, ref } from 'vue'
 import { useTrekStore } from '@/stores/admin/trekStore'
 import { useStaffStore } from '@/stores/admin/staffStore'
+import { useFlashStore } from '@/stores/flashStore'
 
 const trekStore = useTrekStore()
 const staffStore = useStaffStore()
+const flashStore = useFlashStore()
 const fromData = ref({
   name: '',
   location: '',
@@ -20,18 +21,74 @@ const fromData = ref({
   assignedStaffId: '',
 })
 
+const resetForm = () => {
+  fromData.value = {
+    name: '',
+    location: '',
+    difficulty: '',
+    duration: '',
+    totalSlots: '',
+    price: '',
+    imageUrl: '',
+    description: '',
+    startDate: '',
+    endDate: '',
+    assignedStaffId: '',
+  }
+}
+
 onMounted(() => {
-  staffStore.fetchStaffs()
+  staffStore.fetchStaffs().catch((error) => {
+    flashStore.show(error.response?.data?.message || 'Failed to fetch staff.', 'error')
+  })
+
+  const modalEl = document.getElementById('addNewTrekModal')
+  if (modalEl) {
+    modalEl.addEventListener('hidden.bs.modal', resetForm)
+  }
 })
 
-const handleAddTrek = async (e) => {
-  e.preventDefault()
+onUnmounted(() => {
+  const modalEl = document.getElementById('addNewTrekModal')
+  if (modalEl) {
+    modalEl.removeEventListener('hidden.bs.modal', resetForm)
+  }
+})
+
+const validateTrek = (trek) => {
+  const start = new Date(trek.startDate)
+  const end = new Date(trek.endDate)
+
+  if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime())) {
+    return 'Please provide valid start and end dates.'
+  }
+
+  if (end <= start) {
+    return 'Ending date must be after the starting date.'
+  }
+
+  const calculatedDuration =
+    Math.floor((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)) + 1
+
+  if (Number(trek.duration) !== calculatedDuration) {
+    return 'Duration must match the number of days between start and end dates.'
+  }
+
+  return null
+}
+
+const handleAddTrek = async () => {
+  const validationError = validateTrek(fromData.value)
+  if (validationError) {
+    flashStore.show(validationError, 'error')
+    return
+  }
+
   try {
-    await trekStore.addTrek(fromData.value)
-    const modalEl = document.getElementById('addNewTrekModal')
-    if (modalEl) Modal.getOrCreateInstance(modalEl).hide()
-  } catch {
-    // trekStore already shows flash on failure
+    const data = await trekStore.addTrek(fromData.value)
+    flashStore.show(data?.message || 'Trek added successfully.', 'success')
+  } catch (error) {
+    flashStore.show(error.response?.data?.message || 'Failed to add trek.', 'error')
   }
 }
 </script>
@@ -43,6 +100,7 @@ const handleAddTrek = async (e) => {
     tabindex="-1"
     aria-labelledby="addNewTrekModalLabel"
     aria-hidden="true"
+    data-bs-backdrop="static"
   >
     <div class="modal-dialog modal-dialog-centered modal-lg">
       <div class="modal-content">
@@ -53,7 +111,7 @@ const handleAddTrek = async (e) => {
         </div>
 
         <div class="modal-body p-3">
-          <form>
+          <form @submit.prevent="handleAddTrek">
             <div class="row g-3">
               <!-- Trek Name -->
               <div class="col-md-6">

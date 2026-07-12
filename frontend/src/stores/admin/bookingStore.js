@@ -1,18 +1,13 @@
 import { defineStore } from "pinia";
 import { computed, ref } from "vue";
-import { useFlashStore } from "../flashStore";
 import axiosInstance from "@/utils/axioUtil";
 
 export const useBookingStore = defineStore("Booking", () => {
 
-    const flashStore = useFlashStore();
-
-    // state
     const allBookings = ref([]);
     const loadingBookings = ref(false);
     const bookingSearchQuery = ref("");
 
-    // getters
     const filteredBookings = computed(() => {
         const query = bookingSearchQuery.value.trim().toLowerCase();
         if (!query) return allBookings.value;
@@ -29,15 +24,12 @@ export const useBookingStore = defineStore("Booking", () => {
         });
     });
 
-    // actions
     async function fetchAllBookings() {
         loadingBookings.value = true;
         try {
             const { data } = await axiosInstance.get("/admin/bookings");
             allBookings.value = data.bookings;
-        } catch (error) {
-            flashStore.show(error.response?.data?.message || "Failed to fetch bookings.", "error");
-            console.error("Error fetching bookings:", error);
+            return data;
         } finally {
             loadingBookings.value = false;
         }

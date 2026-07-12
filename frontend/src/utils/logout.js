@@ -1,18 +1,24 @@
 import router from "@/router";
 import axiosInstance from "./axioUtil";
-import { useFlashStore } from "@/stores/flashStore";
+import { useNotificationStore } from "@/stores/notificationStore";
 
 export default async function logout() {
+    const notificationStore = useNotificationStore();
+    notificationStore.disconnectSSE();
 
     try {
         localStorage.removeItem('access_token');
         localStorage.removeItem('role');
         localStorage.removeItem('username');
-        const { data } = await axiosInstance.post('/auth/logout');
+        localStorage.removeItem('user_id');
+        await axiosInstance.post('/auth/logout');
+        return { success: true };
     } catch (error) {
-        useFlashStore().show(error.response?.data?.message || 'Error occurred while logging out.', 'error');
+        return {
+            success: false,
+            message: error.response?.data?.message || 'Error occurred while logging out.',
+        };
     } finally {
-        useFlashStore().show('Logged out.', 'success');
         router.push({ name: 'login' });
     }
-}     
+}

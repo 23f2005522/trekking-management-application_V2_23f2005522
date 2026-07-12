@@ -1,13 +1,46 @@
 <script setup>
-import { onMounted } from 'vue'
+import { onMounted, ref } from 'vue'
 import { useAdminStore } from '@/stores/admin/adminStore'
-import Loader from '@/components/Loader.vue'
+import { useFlashStore } from '@/stores/flashStore'
 import { storeToRefs } from 'pinia'
+import Loader from '@/components/Loader.vue'
 
 const adminStore = useAdminStore()
+const flashStore = useFlashStore()
 const { report, loadingReport } = storeToRefs(adminStore)
+const jobLoading = ref(false)
 
-onMounted(() => adminStore.fetchReport())
+onMounted(async () => {
+  try {
+    await adminStore.fetchReport()
+  } catch (error) {
+    flashStore.show(error.response?.data?.message || 'Failed to load report.', 'error')
+  }
+})
+
+async function triggerDailyReminder() {
+  jobLoading.value = true
+  try {
+    const data = await adminStore.triggerDailyReminder()
+    flashStore.show(data.message || 'Daily alert job started.', 'success')
+  } catch (error) {
+    flashStore.show(error.response?.data?.message || 'Failed to start daily alert.', 'error')
+  } finally {
+    jobLoading.value = false
+  }
+}
+
+async function triggerMonthlyReport() {
+  jobLoading.value = true
+  try {
+    const data = await adminStore.triggerMonthlyReport()
+    flashStore.show(data.message || 'Monthly report job started.', 'success')
+  } catch (error) {
+    flashStore.show(error.response?.data?.message || 'Failed to start monthly report.', 'error')
+  } finally {
+    jobLoading.value = false
+  }
+}
 </script>
 
 <template>
@@ -18,10 +51,37 @@ onMounted(() => adminStore.fetchReport())
       Trekking Statistics & Reports
     </h2>
 
+    <!-- Background job triggers -->
+    <div class="card border-0 shadow-sm mb-4">
+      <div class="card-body d-flex flex-wrap gap-2 align-items-center">
+        <span class="text-muted me-2 fw-semibold">Manual Jobs:</span>
+        <button
+          class="btn btn-primary"
+          :disabled="jobLoading"
+          @click="triggerDailyReminder"
+        >
+          <i class="bi bi-envelope me-1"></i>
+          Send Daily Trek Alert
+        </button>
+        <button
+          class="btn btn-success"
+          :disabled="jobLoading"
+          @click="triggerMonthlyReport"
+        >
+          <i class="bi bi-file-earmark-bar-graph me-1"></i>
+          Generate Monthly Report
+        </button>
+        <small class="text-muted ms-2">
+          Jobs run in Celery — check MailHog at localhost:8025
+        </small>
+      </div>
+    </div>
+
     <Loader v-if="loadingReport" />
 
     <div v-else-if="report">
 
+      <!-- overview -->
       <h4 class="mb-3 d-flex align-items-center gap-2 fw-semibold text-secondary">
         <i class="bi bi-grid-1x2-fill text-muted"></i> Overview
       </h4>
@@ -76,16 +136,13 @@ onMounted(() => adminStore.fetchReport())
         </div>
       </div>
 
+      <!-- trek status -->
       <h4 class="mb-3 d-flex align-items-center gap-2 fw-semibold text-secondary">
         <i class="bi bi-activity text-muted"></i> Trek Status
       </h4>
 
       <div class="row g-3 mb-5">
-        <div
-          v-for="(value, key) in report.trek_status"
-          :key="key"
-          class="col-md-2"
-        >
+        <div v-for="(value, key) in report.trek_status" :key="key" class="col-md-2">
           <div class="card status-card bg-gradient bg-secondary text-white border-0 shadow-sm">
             <div class="card-body text-center p-3">
               <i class="bi bi-tags fs-3 mb-2 opacity-75 d-block"></i>
@@ -96,16 +153,13 @@ onMounted(() => adminStore.fetchReport())
         </div>
       </div>
 
+      <!-- booking status -->
       <h4 class="mb-3 d-flex align-items-center gap-2 fw-semibold text-secondary">
         <i class="bi bi-calendar-check text-muted"></i> Booking Status
       </h4>
 
       <div class="row g-3 mb-5">
-        <div
-          v-for="(value, key) in report.booking_status"
-          :key="key"
-          class="col-md-4"
-        >
+        <div v-for="(value, key) in report.booking_status" :key="key" class="col-md-4">
           <div class="card status-card bg-gradient bg-dark text-white border-0 shadow-sm">
             <div class="card-body d-flex align-items-center justify-content-between p-4">
               <div>
@@ -118,10 +172,12 @@ onMounted(() => adminStore.fetchReport())
         </div>
       </div>
 
+      <!-- payment statistics -->
       <h4 class="mb-3 d-flex align-items-center gap-2 fw-semibold text-secondary">
         <i class="bi bi-credit-card-2-back text-muted"></i> Payment Statistics
       </h4>
 
+      <!-- payment statistics -->
       <div class="row g-3 mb-5">
         <div class="col-md-4">
           <div class="card status-card border-start border-success border-4 shadow-sm bg-white">
@@ -177,22 +233,18 @@ onMounted(() => adminStore.fetchReport())
               </tr>
             </thead>
             <tbody>
-              <tr
-                v-for="(trek, index) in report.popular_treks"
-                :key="trek.trek_name"
-              >
+              <tr v-for="(trek, index) in report.popular_treks" :key="trek.trek_name">
                 <td>
-                  <span 
-                    class="badge rounded-circle p-2 d-inline-flex align-items-center justify-content-center"
+                  <span class="badge rounded-circle p-2 d-inline-flex align-items-center justify-content-center"
                     :class="index === 0 ? 'bg-warning text-dark' : index === 1 ? 'bg-secondary text-white' : 'bg-light text-dark'"
-                    style="width: 28px; height: 28px;"
-                  >
+                    style="width: 28px; height: 28px;">
                     {{ index + 1 }}
                   </span>
                 </td>
                 <td class="fw-semibold text-dark">{{ trek.trek_name }}</td>
                 <td>
-                  <span class="badge bg-primary-subtle text-primary border border-primary-subtle rounded-pill px-3 py-2 fw-bold">
+                  <span
+                    class="badge bg-primary-subtle text-primary border border-primary-subtle rounded-pill px-3 py-2 fw-bold">
                     {{ trek.booking_count }} Bookings
                   </span>
                 </td>
@@ -207,7 +259,6 @@ onMounted(() => adminStore.fetchReport())
 </template>
 
 <style scoped>
-
 .status-card {
   transition: transform 0.25s ease, box-shadow 0.25s ease;
 }

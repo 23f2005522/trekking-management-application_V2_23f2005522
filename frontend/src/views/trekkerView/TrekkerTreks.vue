@@ -1,16 +1,22 @@
 <script setup>
 import { onMounted } from 'vue'
 import { useTrekStore } from '@/stores/trekker/trekStore'
+import { useFlashStore } from '@/stores/flashStore'
 import Loader from '@/components/Loader.vue'
 import BookingModal from '@/components/BookingModal.vue'
 
 const trekStore = useTrekStore()
+const flashStore = useFlashStore()
 
 const placeholderImage =
   'https://developers.elementor.com/docs/assets/img/elementor-placeholder-image.png'
 
-onMounted(() => {
-  trekStore.fetchTreks()
+onMounted(async () => {
+  try {
+    await trekStore.fetchTreks()
+  } catch (error) {
+    flashStore.show(error.response?.data?.message || 'Failed to fetch treks.', 'error')
+  }
 })
 
 function getTrekImage(trek) {
@@ -26,9 +32,6 @@ function getDifficultyClass(difficulty) {
   return map[String(difficulty || '').toLowerCase()] || 'bg-secondary'
 }
 
-function openBookingModal(trek) {
-  trekStore.selectedTrek = trek
-}
 </script>
 
 <template>
@@ -120,10 +123,11 @@ function openBookingModal(trek) {
             </div>
 
             <button
+              type="button"
               class="btn btn-success"
               data-bs-toggle="modal"
               data-bs-target="#bookingModal"
-              @click="openBookingModal(trek)"
+              @click="trekStore.selectedTrek = trek"
             >
               <i class="bi bi-backpack2 me-2"></i>
               Book Trek

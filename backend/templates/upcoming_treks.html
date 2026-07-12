@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TrekMaster Trek Update</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f5f7fa;
+            margin: 0;
+            padding: 30px;
+            color: #23293d;
+        }
+        .container {
+            max-width: 640px;
+            margin: 0 auto;
+            background: #fff;
+            border-radius: 14px;
+            box-shadow: 0 4px 18px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+        }
+        .header {
+            background: linear-gradient(135deg, #198754, #20c997);
+            color: #fff;
+            padding: 28px 32px;
+        }
+        .header h1 { margin: 0 0 8px 0; font-size: 1.8rem; }
+        .header p { margin: 0; opacity: 0.92; }
+        .content { padding: 28px 32px; }
+        .intro {
+            margin-bottom: 28px;
+            line-height: 1.6;
+            color: #475273;
+        }
+        .section {
+            margin-bottom: 32px;
+        }
+        .section-header {
+            padding: 14px 18px;
+            border-radius: 10px 10px 0 0;
+            font-size: 1.15rem;
+            font-weight: 700;
+        }
+        .section-approved {
+            background: #dbeafe;
+            color: #1e40af;
+            border-left: 5px solid #3b82f6;
+        }
+        .section-open {
+            background: #d1fae5;
+            color: #065f46;
+            border-left: 5px solid #198754;
+        }
+        .section-message {
+            padding: 12px 18px;
+            font-size: 0.95rem;
+            color: #475273;
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-top: none;
+        }
+        .treks-list {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+            border: 1px solid #e2e8f0;
+            border-top: none;
+            border-radius: 0 0 10px 10px;
+            overflow: hidden;
+        }
+        .trek-card {
+            padding: 18px 20px;
+            border-bottom: 1px solid #e2e8f0;
+            background: #fff;
+        }
+        .trek-card:last-child { border-bottom: none; }
+        .trek-name {
+            font-size: 1.15rem;
+            font-weight: bold;
+            margin-bottom: 6px;
+        }
+        .trek-name.approved { color: #1d4ed8; }
+        .trek-name.open { color: #198754; }
+        .trek-description {
+            color: #64748b;
+            font-size: 0.9rem;
+            margin-bottom: 10px;
+            line-height: 1.5;
+        }
+        .trek-meta { font-size: 0.9rem; margin-bottom: 3px; }
+        .trek-label {
+            font-weight: 600;
+            color: #4e5c7e;
+            min-width: 100px;
+            display: inline-block;
+        }
+        .cta {
+            margin-top: 8px;
+            padding: 18px;
+            background: #ecfdf5;
+            border-radius: 10px;
+            text-align: center;
+            color: #065f46;
+            font-weight: 600;
+        }
+        .footer {
+            padding: 16px 32px 24px;
+            font-size: 0.85rem;
+            color: #94a3b8;
+            text-align: center;
+        }
+        .empty-section {
+            padding: 16px 20px;
+            color: #94a3b8;
+            font-style: italic;
+            border: 1px solid #e2e8f0;
+            border-top: none;
+            border-radius: 0 0 10px 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>TrekMaster Trek Update</h1>
+            <p>
+                {% if approved_count and open_count %}
+                    {{ approved_count }} on the way &amp; {{ open_count }} open for booking
+                {% elif approved_count %}
+                    {{ approved_count }} new trek{{ 's' if approved_count != 1 else '' }} on the way
+                {% else %}
+                    {{ open_count }} trek{{ 's' if open_count != 1 else '' }} open for booking
+                {% endif %}
+            </p>
+        </div>
+
+        <div class="content">
+            <p class="intro">
+                Hi <strong>{{ trekker_name }}</strong>,<br><br>
+                Here is your latest trekking update from TrekMaster.
+            </p>
+
+            {% if approved_treks %}
+            <div class="section">
+                <div class="section-header section-approved">
+                    New Treks On The Way
+                </div>
+                <div class="section-message">
+                    These treks have been approved and will open for booking soon. Get ready for new adventures!
+                </div>
+                <ul class="treks-list">
+                    {% for trek in approved_treks %}
+                    <li class="trek-card">
+                        <div class="trek-name approved">{{ trek.name }}</div>
+                        {% if trek.description %}
+                        <div class="trek-description">{{ trek.description }}</div>
+                        {% endif %}
+                        <div class="trek-meta"><span class="trek-label">Location:</span> {{ trek.location }}</div>
+                        <div class="trek-meta"><span class="trek-label">Difficulty:</span> {{ trek.difficulty.value | capitalize }}</div>
+                        <div class="trek-meta"><span class="trek-label">Duration:</span> {{ trek.duration }} day{{ 's' if trek.duration != 1 else '' }}</div>
+                        <div class="trek-meta"><span class="trek-label">Price:</span> ₹{{ trek.price }}</div>
+                        <div class="trek-meta"><span class="trek-label">Starts:</span> {{ trek.starting_at.strftime('%d %b %Y') }}</div>
+                        <div class="trek-meta"><span class="trek-label">Ends:</span> {{ trek.ending_at.strftime('%d %b %Y') }}</div>
+                    </li>
+                    {% endfor %}
+                </ul>
+            </div>
+            {% endif %}
+
+            {% if open_treks %}
+            <div class="section">
+                <div class="section-header section-open">
+                    Treks Open for Booking
+                </div>
+                <div class="section-message">
+                    These treks are open right now — book your spot before slots run out!
+                </div>
+                <ul class="treks-list">
+                    {% for trek in open_treks %}
+                    <li class="trek-card">
+                        <div class="trek-name open">{{ trek.name }}</div>
+                        {% if trek.description %}
+                        <div class="trek-description">{{ trek.description }}</div>
+                        {% endif %}
+                        <div class="trek-meta"><span class="trek-label">Location:</span> {{ trek.location }}</div>
+                        <div class="trek-meta"><span class="trek-label">Difficulty:</span> {{ trek.difficulty.value | capitalize }}</div>
+                        <div class="trek-meta"><span class="trek-label">Duration:</span> {{ trek.duration }} day{{ 's' if trek.duration != 1 else '' }}</div>
+                        <div class="trek-meta"><span class="trek-label">Price:</span> ₹{{ trek.price }}</div>
+                        <div class="trek-meta"><span class="trek-label">Starts:</span> {{ trek.starting_at.strftime('%d %b %Y') }}</div>
+                        <div class="trek-meta"><span class="trek-label">Ends:</span> {{ trek.ending_at.strftime('%d %b %Y') }}</div>
+                        <div class="trek-meta"><span class="trek-label">Slots Left:</span> {{ trek.available_slots }} / {{ trek.total_slots }}</div>
+                    </li>
+                    {% endfor %}
+                </ul>
+            </div>
+            {% endif %}
+
+            <div class="cta">
+                Log in to TrekMaster to browse treks and book your next adventure!
+            </div>
+        </div>
+
+        <div class="footer">
+            You received this email because you are registered on TrekMaster.
+        </div>
+    </div>
+</body>
+</html>
+

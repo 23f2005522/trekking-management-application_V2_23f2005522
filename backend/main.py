@@ -3,6 +3,7 @@ from config.config import Config
 from flask_cors import CORS 
 from flask_jwt_extended import JWTManager
 from flask_migrate import Migrate
+from flask_sse import sse
 from db.db import db 
 from db.seed_data import master_seed
 
@@ -31,6 +32,7 @@ jwt.init_app(app)  # then initializing JWTManager with app
 
 cors = CORS(app , origins="*", supports_credentials=True) # initializing CORS with app allowing all origins and supporting credentials
 
+app.register_blueprint(sse, url_prefix="/stream") # registering sse blueprint for streaming messages to clients
 
 
 

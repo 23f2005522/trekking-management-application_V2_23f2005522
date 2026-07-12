@@ -1,15 +1,22 @@
 <script setup>
 import { useStaffStore } from '@/stores/admin/staffStore'
+import { useFlashStore } from '@/stores/flashStore'
 
 const staffStore = useStaffStore()
+const flashStore = useFlashStore()
 
 const handleSaveChanges = async () => {
-  await staffStore.handelEditStaff()
+  try {
+    const data = await staffStore.handelEditStaff()
+    flashStore.show(data?.message || 'Staff updated successfully.', 'success')
+  } catch (error) {
+    flashStore.show(error.response?.data?.message || 'Failed to edit staff.', 'error')
+  }
 }
 </script>
 
 <template>
-  <div class="modal fade" id="manageStaffModal" tabindex="-1">
+  <div class="modal fade" id="manageStaffModal" tabindex="-1" data-bs-backdrop="static">
     <div class="modal-dialog modal-dialog-centered">
       <div class="modal-content">
         <div class="modal-header bg-success text-white">
@@ -91,7 +98,7 @@ const handleSaveChanges = async () => {
           <textarea rows="4" class="form-control" v-model="staffStore.reason" />
         </div>
 
-        <div v-else class="modal-body text-center">Loading...</div>
+        <div v-else class="modal-body text-center text-muted">Select a staff member.</div>
 
         <div class="modal-footer">
           <button class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>

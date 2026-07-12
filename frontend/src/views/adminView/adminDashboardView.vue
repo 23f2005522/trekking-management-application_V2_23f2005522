@@ -1,14 +1,18 @@
 <script setup>
 import Loader from '@/components/Loader.vue'
 import { useAdminStore } from '@/stores/admin/adminStore'
+import { useFlashStore } from '@/stores/flashStore'
 import { onMounted } from 'vue'
 
 const adminStore = useAdminStore()
-// console.log(adminStore)
+const flashStore = useFlashStore()
+
 onMounted(async () => {
-  await adminStore.fetchAdminData()
-  // console.log(adminStore.admin)
-  console.log(adminStore.dashboardData)
+  try {
+    await adminStore.fetchAdminData()
+  } catch (error) {
+    flashStore.show(error.response?.data?.message || 'Failed to load dashboard data.', 'error')
+  }
 })
 </script>
 

@@ -6,8 +6,9 @@ flask_cors
 flask_jwt_extended
 
 
-redis
+redis>=4.5,<5.0.0
 celery
 python-dotenv
 reportlab
+flask-sse
 

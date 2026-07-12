@@ -1,7 +1,6 @@
 <script setup>
-import { Modal } from 'bootstrap'
 import { useTrekStore } from '@/stores/admin/trekStore'
-
+import { useFlashStore } from '@/stores/flashStore'
 
 const props = defineProps({
   trekId: {
@@ -11,18 +10,19 @@ const props = defineProps({
   },
 })
 
-
 const trekStore = useTrekStore()
+const flashStore = useFlashStore()
 
 const handleDelete = async () => {
   if (!props.trekId) return
 
-  await trekStore.deleteTrek(props.trekId)
-  const modalEl = document.getElementById('deleteTrekModal')
-  if (modalEl) Modal.getOrCreateInstance(modalEl).hide()
+  try {
+    const data = await trekStore.deleteTrek(props.trekId)
+    flashStore.show(data?.message || 'Trek deleted successfully.', 'success')
+  } catch (error) {
+    flashStore.show(error.response?.data?.message || 'Error deleting trek.', 'error')
+  }
 }
-
-
 </script>
 
 <template>
@@ -32,6 +32,7 @@ const handleDelete = async () => {
     tabindex="-1"
     aria-labelledby="deleteTrekModalLabel"
     aria-hidden="true"
+    data-bs-backdrop="static"
   >
     <div class="modal-dialog">
       <div class="modal-content">

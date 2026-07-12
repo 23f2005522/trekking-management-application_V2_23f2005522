@@ -3,12 +3,12 @@ __pycache__/
 *.py[cod]
 *$py.class
 
-
 # Virtual environment
 venv/
 env/
 ENV/
 .venv/
+backend/venv/
 
 # VS Code settings
 .vscode/
@@ -20,7 +20,7 @@ ENV/
 *.log
 *.tmp
 
-# OS-Specific files
+# OS-specific files
 .DS_Store
 Thumbs.db
 
@@ -29,7 +29,28 @@ Thumbs.db
 *.sublime-project
 *.sublime-workspace
 
-
-# database files
+# Database files (local SQLite — do not commit)
+*.db
 *.sqlite3
-.db
+backend/instance/
+
+# Redis dump files
+dump.rdb
+**/dump.rdb
+
+# Celery Beat schedule files (auto-generated locally)
+celerybeat-schedule
+celerybeat-schedule.*
+celerybeat-schedule.bak
+celerybeat-schedule.dat
+celerybeat-schedule.dir
+
+# Generated CSV export files
+backend/exports/*
+!backend/exports/.gitkeep
+
+# Session / dev notes & handoff docs (keep README.md for repo)
+*.md
+!README.md
+!frontend/README.md
+

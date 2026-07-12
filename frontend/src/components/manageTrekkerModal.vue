@@ -60,7 +60,12 @@ const handleSave = async () => {
     return
   }
 
-  await trekkerStore.handleEditTrekker(trekker.user_id, selectedStatus.value, reason.value)
+  try {
+    const data = await trekkerStore.handleEditTrekker(trekker.user_id, selectedStatus.value, reason.value)
+    flashStore.show(data?.message || 'Trekker updated successfully.', 'success')
+  } catch (error) {
+    flashStore.show(error.response?.data?.message || 'Failed to update trekker status.', 'error')
+  }
 }
 </script>
 
@@ -70,6 +75,7 @@ const handleSave = async () => {
     id="manageTrekkerModal"
     tabindex="-1"
     aria-hidden="true"
+    data-bs-backdrop="static"
   >
     <div class="modal-dialog modal-dialog-centered">
       <div class="modal-content">
@@ -159,7 +165,7 @@ const handleSave = async () => {
           ></textarea>
         </div>
 
-        <div v-else class="modal-body text-center">Loading...</div>
+        <div v-else class="modal-body text-center text-muted">Select a trekker.</div>
 
         <div class="modal-footer">
           <button class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>

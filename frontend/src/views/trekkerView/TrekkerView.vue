@@ -1,5 +1,17 @@
 <script setup>
+import { onMounted, onUnmounted } from 'vue'
 import TrekkerSidebar from './TrekkerSidebar.vue'
+import { useNotificationStore } from '@/stores/notificationStore'
+
+const notificationStore = useNotificationStore()
+
+onMounted(() => {
+  notificationStore.connectSSE()
+})
+
+onUnmounted(() => {
+  notificationStore.disconnectSSE()
+})
 </script>
 
 <template>

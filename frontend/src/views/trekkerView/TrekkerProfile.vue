@@ -13,7 +13,7 @@ onMounted(async () => {
   } catch (error) {
     flashStore.show(
       error.response?.data?.message || 'Failed to fetch profile.',
-      'danger'
+      'error'
     )
   }
 })
@@ -25,7 +25,7 @@ const handleUpdateProfile = async () => {
   } catch (error) {
     flashStore.show(
       error.response?.data?.message || 'Failed to update profile.',
-      'danger'
+      'error'
     )
   }
 }

@@ -1,5 +1,4 @@
 <script setup>
-import { Modal } from 'bootstrap'
 import { useFlashStore } from '@/stores/flashStore'
 import { useTrekStore } from '@/stores/trekker/trekStore'
 
@@ -10,11 +9,7 @@ async function confirmBooking() {
   try {
     await trekStore.bookTrek()
     await trekStore.fetchTreks()
-
     flashStore.show('Trek booked.', 'success')
-
-    const modalEl = document.getElementById('bookingModal')
-    if (modalEl) Modal.getOrCreateInstance(modalEl).hide()
   } catch (error) {
     flashStore.show(
       error.response?.data?.message || 'An error occurred while booking the trek.',
@@ -31,6 +26,7 @@ async function confirmBooking() {
     tabindex="-1"
     aria-labelledby="bookingModalLabel"
     aria-hidden="true"
+    data-bs-backdrop="static"
   >
     <div class="modal-dialog modal-dialog-centered modal-lg">
       <div class="modal-content">

@@ -1,20 +1,20 @@
 <script setup>
 import { onMounted } from 'vue'
 import { useStaffStore } from '@/stores/admin/staffStore'
+import { useFlashStore } from '@/stores/flashStore'
 import ManagaStaffModal from '@/components/managaStaffModal.vue'
 import CreateStaffModal from '@/components/createStaffModal.vue'
 
 const staffStore = useStaffStore()
+const flashStore = useFlashStore()
 
-onMounted(() => {
-  staffStore.allFetchStaffs?.() ?? staffStore.fetchStaffs?.()
+onMounted(async () => {
+  try {
+    await (staffStore.allFetchStaffs?.() ?? staffStore.fetchStaffs?.())
+  } catch (error) {
+    flashStore.show(error.response?.data?.message || 'Failed to fetch staff.', 'error')
+  }
 })
-
-
-const handelStaffSelection = (staffId) => {
-  console.log("Selected Staff ID:", staffId)
-  staffStore.selectedStaffId = staffId
-}
 
 
 
@@ -37,6 +37,7 @@ const handelStaffSelection = (staffId) => {
 
       <button
         class="btn btn-success"
+        type="button"
         data-bs-toggle="modal"
         data-bs-target="#createStaffModal"
       >
@@ -138,10 +139,11 @@ const handelStaffSelection = (staffId) => {
                 <td>
                   <!-- Actions -->
                   <button
-                    @click="handelStaffSelection(staff.user_id)"
+                    type="button"
                     class="btn btn-primary"
                     data-bs-toggle="modal"
                     data-bs-target="#manageStaffModal"
+                    @click="staffStore.selectedStaffId = staff.user_id"
                   >
                     <i class="bi bi-pencil"></i>
                   </button>

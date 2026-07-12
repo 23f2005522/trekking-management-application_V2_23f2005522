@@ -8,19 +8,14 @@ import { onMounted } from 'vue'
 
 const TrekkerStore = userTrekkerStore()
 const flashStore = useFlashStore()
-onMounted(() => {
+
+onMounted(async () => {
   try {
-    TrekkerStore.fetchAllTrekkers()
-    flashStore.show('Trekkers fetched successfully.', 'success')
+    await TrekkerStore.fetchAllTrekkers()
   } catch (error) {
-    flashStore.show('Error fetching trekkers.', 'danger')
+    flashStore.show(error.response?.data?.message || 'Error fetching trekkers.', 'error')
   }
 })
-
-const handleTrekkerSelection = (id) => {
-  console.log('Selected Trekker:', id)
-  TrekkerStore.selectedTrekkerId = id
-}
 
 </script>
 
@@ -123,10 +118,11 @@ const handleTrekkerSelection = (id) => {
 
               <td>
                 <button
+                  type="button"
                   class="btn btn-primary btn-sm"
-                  @click="handleTrekkerSelection(trekker.user_id)"
                   data-bs-toggle="modal"
                   data-bs-target="#manageTrekkerModal"
+                  @click="TrekkerStore.selectedTrekkerId = trekker.user_id"
                 >
                   <i class="bi bi-pencil"></i>
                 </button>

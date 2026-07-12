@@ -3,8 +3,10 @@ import AddTrekModal from '@/components/addTrekModal.vue'
 import DeleteTrekModal from '@/components/deleteTrekModal.vue'
 import EditTrekModal from '@/components/editTrekModal.vue'
 import { useTrekStore } from '@/stores/admin/trekStore'
+import { useFlashStore } from '@/stores/flashStore'
 import { onMounted, ref } from 'vue'
 const trekStore = useTrekStore()
+const flashStore = useFlashStore()
 
 const getStatusBadgeClass = (status) => {
   const normalizedStatus = String(status || '').toLowerCase()
@@ -21,27 +23,30 @@ const getStatusBadgeClass = (status) => {
   return statusClassMap[normalizedStatus] || 'bg-secondary'
 }
 
-onMounted(() => {
-  trekStore.fetchTreks()
+onMounted(async () => {
+  try {
+    await trekStore.fetchTreks()
+  } catch (error) {
+    flashStore.show(error.response?.data?.message || 'Failed to fetch treks.', 'error')
+  }
 })
 
-const selectedTrekID = ref(null)
-const handleEdit = (id) => {
-  selectedTrekID.value = id
+const openEditModal = async (id) => {
+  try {
+    await trekStore.fetchTrekById(id)
+  } catch (error) {
+    flashStore.show(error.response?.data?.message || 'Failed to load trek.', 'error')
+  }
 }
 
 const selectedTrekForDelete = ref(null)
-const handleDelete = (id) => {
-  selectedTrekForDelete.value = id
-  console.log('Selected trek for deletion:', selectedTrekForDelete.value)
-}
 </script>
 
 <template>
   <div>
     <!-- ModalS -->
     <AddTrekModal />
-    <EditTrekModal :trekId="selectedTrekID" />
+    <EditTrekModal />
     <DeleteTrekModal :trekId="selectedTrekForDelete" />
 
     <!-- Heading -->
@@ -55,6 +60,7 @@ const handleDelete = (id) => {
       <!-- Modal Button -->
       <button
         class="btn btn-success d-flex align-items-center"
+        type="button"
         data-bs-toggle="modal"
         data-bs-target="#addNewTrekModal"
       >
@@ -134,10 +140,11 @@ const handleDelete = (id) => {
 
               <td>
                 <button
+                  type="button"
                   class="btn btn-outline-primary btn-sm me-2"
                   data-bs-toggle="modal"
                   data-bs-target="#editTrekModal"
-                  @click="handleEdit(trek.id)"
+                  @click="openEditModal(trek.id)"
                 >
                   <i class="bi bi-pencil"></i>
                 </button>
@@ -147,7 +154,7 @@ const handleDelete = (id) => {
                   class="btn btn-danger"
                   data-bs-toggle="modal"
                   data-bs-target="#deleteTrekModal"
-                  @click="handleDelete(trek.id)"
+                  @click="selectedTrekForDelete = trek.id"
                 >
                   <i class="bi bi-trash"></i>
                 </button>

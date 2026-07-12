@@ -2,8 +2,10 @@
 import { computed, onMounted, ref, watch } from 'vue'
 import { storeToRefs } from 'pinia'
 import { userStaffStore } from '@/stores/staff/staffStore'
+import { useFlashStore } from '@/stores/flashStore'
 
 const staffStore = userStaffStore()
+const flashStore = useFlashStore()
 const {
   assignedTreks,
   participantsTrek,
@@ -55,9 +57,10 @@ const formatDisplayDate = (dateString) => {
 
 const togglePayment = async (participant) => {
   try {
-    await staffStore.toggleParticipantPayment(selectedTrekId.value, participant.id)
-  } catch {
-    // staffStore already shows flash on failure
+    const data = await staffStore.toggleParticipantPayment(selectedTrekId.value, participant.id)
+    flashStore.show(data?.message || 'Payment status updated successfully.', 'success')
+  } catch (error) {
+    flashStore.show(error.response?.data?.message || 'Failed to update payment status.', 'error')
   }
 }
 
@@ -65,7 +68,13 @@ const selectTrek = (trekId) => {
   selectedTrekId.value = trekId
 }
 
-watch(selectedTrekId, (trekId) => staffStore.fetchParticipants(trekId))
+watch(selectedTrekId, async (trekId) => {
+  try {
+    await staffStore.fetchParticipants(trekId)
+  } catch (error) {
+    flashStore.show(error.response?.data?.message || 'Failed to load participants.', 'error')
+  }
+})
 
 onMounted(async () => {
   try {
@@ -74,8 +83,8 @@ onMounted(async () => {
     if (assignedTreks.value.length > 0) {
       selectTrek(assignedTreks.value[0].id)
     }
-  } catch {
-    // staffStore already shows flash on failure
+  } catch (error) {
+    flashStore.show(error.response?.data?.message || 'Failed to load assigned treks.', 'error')
   }
 })
 </script>

@@ -3,8 +3,10 @@ import { computed, onMounted } from 'vue'
 import { storeToRefs } from 'pinia'
 import Loader from '@/components/Loader.vue'
 import { userStaffStore } from '@/stores/staff/staffStore'
+import { useFlashStore } from '@/stores/flashStore'
 
 const staffStore = userStaffStore()
+const flashStore = useFlashStore()
 const { staffProfile, loadingProfile } = storeToRefs(staffStore)
 
 const profileStatusLabel = computed(() => {
@@ -29,8 +31,8 @@ const profileStatusClass = computed(() => {
 onMounted(async () => {
   try {
     await staffStore.fetchProfile()
-  } catch {
-    // staffStore already shows flash on failure
+  } catch (error) {
+    flashStore.show(error.response?.data?.message || 'Failed to load profile.', 'error')
   }
 })
 </script>

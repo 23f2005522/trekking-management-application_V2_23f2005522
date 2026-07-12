@@ -1,6 +1,7 @@
 from flask import Blueprint, jsonify, request
 from flask_jwt_extended import jwt_required
 from sqlalchemy import func
+from sqlalchemy.exc import IntegrityError
 from utils.auth_utility import role_required
 from model.model import *
 
@@ -207,6 +208,13 @@ def add_trek():
         if startDate and endDate and duration:
             start_date_obj = datetime.strptime(startDate, "%Y-%m-%d")
             end_date_obj = datetime.strptime(endDate, "%Y-%m-%d")
+
+            if end_date_obj <= start_date_obj:
+                response = {
+                    "message": "Ending date must be after the starting date.",
+                }
+                return jsonify(response), 400
+
             calculated_duration = (end_date_obj - start_date_obj).days + 1
 
             if calculated_duration != int(duration):
@@ -253,6 +261,15 @@ def add_trek():
         }
 
         return jsonify(response), 201
+
+    except IntegrityError as e:
+        db.session.rollback()
+        print(f"Error occurred while adding the trek: {e}")
+        if "ending before start" in str(e).lower():
+            message = "Ending date must be after the starting date."
+        else:
+            message = "Invalid trek data. Please check your inputs."
+        return jsonify({"message": message}), 400
 
     except Exception as e:
         db.session.rollback()  # Rollback the session in case of an error
@@ -358,18 +375,42 @@ def edit_trek(trek_id):
             trek.price = float(data.get("price", trek.price))
             trek.image_url = data.get("imageUrl", trek.image_url)
             trek.description = data.get("description", trek.description)
-            trek.starting_at = datetime.strptime(
-                data.get("startDate", trek.starting_at.strftime("%Y-%m-%d")), "%Y-%m-%d"
-            )
-            trek.ending_at = datetime.strptime(
-                data.get("endDate", trek.ending_at.strftime("%Y-%m-%d")), "%Y-%m-%d"
-            )
 
-            trek.status = (
-                TrekStatus.APPROVED
-                if data.get("status", trek.status.value) == TrekStatus.APPROVED.value
-                else TrekStatus.PENDING
-            )
+            start_date_str = data.get("startDate", trek.starting_at.strftime("%Y-%m-%d"))
+            end_date_str = data.get("endDate", trek.ending_at.strftime("%Y-%m-%d"))
+            start_date_obj = datetime.strptime(start_date_str, "%Y-%m-%d")
+            end_date_obj = datetime.strptime(end_date_str, "%Y-%m-%d")
+
+            if end_date_obj <= start_date_obj:
+                response = {
+                    "message": "Ending date must be after the starting date.",
+                }
+                return jsonify(response), 400
+
+            duration_value = int(data.get("duration", trek.duration))
+            calculated_duration = (end_date_obj - start_date_obj).days + 1
+            if calculated_duration != duration_value:
+                response = {
+                    "message": "The provided duration does not match the difference between the start and end dates.",
+                }
+                return jsonify(response), 400
+
+            available_slots = int(data.get("availableSlots", trek.available_slots))
+            total_slots = int(data.get("totalSlots", trek.total_slots))
+            if available_slots > total_slots:
+                response = {
+                    "message": "Available slots cannot be greater than total slots.",
+                }
+                return jsonify(response), 400
+
+            trek.starting_at = start_date_obj
+            trek.ending_at = end_date_obj
+
+            status_value = data.get("status", trek.status.value)
+            try:
+                trek.status = TrekStatus(status_value)
+            except ValueError:
+                trek.status = TrekStatus.PENDING
 
             db.session.commit()
             response = {
@@ -391,6 +432,15 @@ def edit_trek(trek_id):
                 },
             }
             return jsonify(response), 200
+
+        except IntegrityError as e:
+            db.session.rollback()
+            print(f"Error occurred while updating the trek: {e}")
+            if "ending before start" in str(e).lower():
+                message = "Ending date must be after the starting date."
+            else:
+                message = "Invalid trek data. Please check your inputs."
+            return jsonify({"message": message}), 400
 
         except Exception as e:
             db.session.rollback()

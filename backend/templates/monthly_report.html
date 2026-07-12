@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Monthly Report — TrekMaster</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f0f4f8;
+            margin: 0;
+            padding: 30px;
+            color: #1e293b;
+        }
+        .container {
+            max-width: 680px;
+            margin: 0 auto;
+            background: #fff;
+            border-radius: 14px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+        }
+        .header {
+            background: linear-gradient(135deg, #1e40af, #3b82f6);
+            color: #fff;
+            padding: 32px;
+        }
+        .header h1 { margin: 0 0 6px 0; font-size: 2rem; }
+        .header p { margin: 0; opacity: 0.9; font-size: 1.05rem; }
+        .content { padding: 32px; }
+        .stats-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+            margin-bottom: 28px;
+        }
+        .stat-card {
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 12px;
+            padding: 20px;
+            text-align: center;
+        }
+        .stat-value {
+            font-size: 2rem;
+            font-weight: 800;
+            color: #1e40af;
+            margin-bottom: 4px;
+        }
+        .stat-label {
+            font-size: 0.85rem;
+            color: #64748b;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+        }
+        .stat-card.highlight {
+            background: #eff6ff;
+            border-color: #bfdbfe;
+            grid-column: span 2;
+        }
+        .stat-card.highlight .stat-value { color: #059669; }
+        h2 {
+            font-size: 1.2rem;
+            color: #1e40af;
+            border-bottom: 2px solid #e2e8f0;
+            padding-bottom: 8px;
+            margin: 28px 0 16px 0;
+        }
+        .trek-list {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+        .trek-list li {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 14px 18px;
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 10px;
+            margin-bottom: 10px;
+            font-size: 1rem;
+        }
+        .trek-list .rank {
+            background: #1e40af;
+            color: #fff;
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.8rem;
+            font-weight: 700;
+            margin-right: 12px;
+            flex-shrink: 0;
+        }
+        .trek-list .trek-info { display: flex; align-items: center; }
+        .booking-count {
+            background: #dbeafe;
+            color: #1e40af;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-weight: 700;
+            font-size: 0.85rem;
+        }
+        .conducted-list {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+        .conducted-list li {
+            padding: 10px 16px;
+            background: #f0fdf4;
+            border-left: 4px solid #22c55e;
+            border-radius: 0 8px 8px 0;
+            margin-bottom: 8px;
+            color: #166534;
+            font-weight: 500;
+        }
+        .empty {
+            color: #94a3b8;
+            font-style: italic;
+            padding: 12px 0;
+        }
+        .footer {
+            padding: 20px 32px;
+            background: #f8fafc;
+            font-size: 0.85rem;
+            color: #94a3b8;
+            text-align: center;
+            border-top: 1px solid #e2e8f0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Monthly Trekking Report</h1>
+            <p>{{ report_data.month_label }} — TrekMaster Admin Summary</p>
+        </div>
+
+        <div class="content">
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-value">{{ report_data.treks_conducted }}</div>
+                    <div class="stat-label">Treks Conducted</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value">{{ report_data.participants }}</div>
+                    <div class="stat-label">Participants</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value">{{ report_data.total_monthly_bookings }}</div>
+                    <div class="stat-label">Total Bookings</div>
+                </div>
+                <div class="stat-card highlight">
+                    <div class="stat-value">₹{{ "%.2f"|format(report_data.monthly_revenue) }}</div>
+                    <div class="stat-label">Revenue Collected (Paid)</div>
+                </div>
+            </div>
+
+            <h2>Top 5 Popular Treks This Month</h2>
+            {% if report_data.popular_treks %}
+            <ul class="trek-list">
+                {% for trek in report_data.popular_treks %}
+                <li>
+                    <span class="trek-info">
+                        <span class="rank">{{ loop.index }}</span>
+                        {{ trek.trek_name }}
+                    </span>
+                    <span class="booking-count">{{ trek.booking_count }} booking{{ 's' if trek.booking_count != 1 else '' }}</span>
+                </li>
+                {% endfor %}
+            </ul>
+            {% else %}
+            <p class="empty">No bookings recorded this month.</p>
+            {% endif %}
+
+            <h2>Treks Conducted This Month</h2>
+            {% if report_data.completed_trek_names %}
+            <ul class="conducted-list">
+                {% for name in report_data.completed_trek_names %}
+                <li>{{ name }}</li>
+                {% endfor %}
+            </ul>
+            {% else %}
+            <p class="empty">No treks completed this month yet.</p>
+            {% endif %}
+        </div>
+
+        <div class="footer">
+            This is an automated monthly report from TrekMaster. Generated on {{ report_data.month_label }}.
+        </div>
+    </div>
+</body>
+</html>
+

@@ -2,10 +2,12 @@
 import { onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useTrekkerStore } from '@/stores/trekker/trekkerStore'
+import { useFlashStore } from '@/stores/flashStore'
 import Loader from '@/components/Loader.vue'
 
 const router = useRouter()
 const trekkerStore = useTrekkerStore()
+const flashStore = useFlashStore()
 
 const getStatusBadgeClass = (status) => {
   const normalizedStatus = String(status || '').toLowerCase()
@@ -32,8 +34,12 @@ const formatPrice = (price) => {
   }).format(Number(price || 0))
 }
 
-onMounted(() => {
-  trekkerStore.fetchDashboardData()
+onMounted(async () => {
+  try {
+    await trekkerStore.fetchDashboardData()
+  } catch (error) {
+    flashStore.show(error.response?.data?.message || 'Failed to load dashboard data.', 'error')
+  }
 })
 </script>
 

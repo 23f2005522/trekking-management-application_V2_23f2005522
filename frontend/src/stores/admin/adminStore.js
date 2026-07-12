@@ -1,28 +1,19 @@
 import { defineStore } from "pinia";
-import { reactive, ref } from "vue";
+import { ref } from "vue";
 import axiosInstance from "../../utils/axioUtil";
-import { useFlashStore } from "../flashStore";
-
-const flashStore = useFlashStore();
 
 export const useAdminStore = defineStore("Admin", () => {
 
-    // state
     const admin = ref(null);
-
     const dashboardData = ref(null);
-
     const loadingAdmin = ref(false);
 
     const report = ref(null);
     const loadingReport = ref(false);
 
-    // actions
     const fetchAdminData = async () => {
-        
-        // if data already exists, no need to fetch again
-        if( admin.value && dashboardData.value) return;
-        
+        if (admin.value && dashboardData.value) return;
+
         loadingAdmin.value = true;
 
         try {
@@ -31,15 +22,13 @@ export const useAdminStore = defineStore("Admin", () => {
             admin.value = data.admin_user;
             dashboardData.value = data.dashboard_stats;
 
-            flashStore.show(data.message, "success");
-
+            return data;
         } catch (error) {
-            flashStore.show(error.response?.data?.message || "Failed to fetch admin data.", "error");
+            throw error;
         } finally {
             loadingAdmin.value = false;
         }
     }
-
 
     async function fetchReport() {
         loadingReport.value = true;
@@ -47,14 +36,22 @@ export const useAdminStore = defineStore("Admin", () => {
         try {
             const { data } = await axiosInstance.get("/admin/report");
             report.value = data;
+            return data;
         } catch (error) {
-            flashStore.show(
-                error.response?.data?.message || "Failed to load report.",
-                "error"
-            );
+            throw error;
         } finally {
             loadingReport.value = false;
         }
+    }
+
+    async function triggerDailyReminder() {
+        const { data } = await axiosInstance.post("/admin/job/dailyEmailReminder");
+        return data;
+    }
+
+    async function triggerMonthlyReport() {
+        const { data } = await axiosInstance.post("/admin/job/monthlyReport");
+        return data;
     }
 
     function resetAdminData() {
@@ -74,8 +71,9 @@ export const useAdminStore = defineStore("Admin", () => {
 
         fetchAdminData,
         fetchReport,
-        resetAdminData
-
+        triggerDailyReminder,
+        triggerMonthlyReport,
+        resetAdminData,
     }
 
 })

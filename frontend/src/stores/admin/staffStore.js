@@ -1,14 +1,9 @@
 import { defineStore } from "pinia";
 import { computed, ref, watch } from "vue";
-import { useFlashStore } from "../flashStore";
 import axiosInstance from "@/utils/axioUtil";
-
 
 export const useStaffStore = defineStore("adminStaff", () => {
 
-    const flashStore = useFlashStore();
-
-    // state
     const loadingStaffs = ref(false);
     const allStaffs = ref([]);
     const staffsearchQuery = ref("");
@@ -17,7 +12,6 @@ export const useStaffStore = defineStore("adminStaff", () => {
     const selectedStatus = ref("");
     const reason = ref("");
 
-    // getters
     const filteredStaffs = computed(() => {
         const query = staffsearchQuery.value.trim().toLowerCase();
         if (!query) return allStaffs.value;
@@ -30,7 +24,6 @@ export const useStaffStore = defineStore("adminStaff", () => {
                 staff.staff_id == String(query)
             );
         });
-
     });
 
     const approvedStaffs = computed(() => {
@@ -55,7 +48,6 @@ export const useStaffStore = defineStore("adminStaff", () => {
         ) || null;
     })
 
-    // whenever the selected staff changes, sync the form fields
     watch(
         selectedStaff,
         (newVal) => {
@@ -70,16 +62,12 @@ export const useStaffStore = defineStore("adminStaff", () => {
         { immediate: true },
     );
 
-    // actions
     async function allFetchStaffs() {
         loadingStaffs.value = true;
         try {
             const { data } = await axiosInstance.get("/admin/staffs");
             allStaffs.value = data.staffs;
-
-        } catch (error) {
-            flashStore.show(error.response?.data?.message || "Failed to fetch staffs.", "error");
-            console.error("Error fetching staffs:", error);
+            return data;
         } finally {
             loadingStaffs.value = false;
         }
@@ -90,34 +78,19 @@ export const useStaffStore = defineStore("adminStaff", () => {
     }
 
     async function handelEditStaff() {
-        try {
-            const response = await axiosInstance.post(
-                `/admin/staffs/${selectedStaffId.value}/${selectedStatus.value}`,
-                { reason: reason.value }
-            );
-
-            flashStore.show(response.data.message || "Staff updated successfully.", "success");
-
-            await allFetchStaffs();
-
-        } catch (error) {
-            flashStore.show(error.response?.data?.message || "Failed to edit staff.", "error");
-            console.error("Error editing staff:", error);
-        }
+        const response = await axiosInstance.post(
+            `/admin/staffs/${selectedStaffId.value}/${selectedStatus.value}`,
+            { reason: reason.value }
+        );
+        await allFetchStaffs();
+        return response.data;
     }
 
     async function createStaff(staffData) {
-        try {
-            const response = await axiosInstance.post("/admin/create_staff", staffData);
-            flashStore.show(response.data.message || "Staff created successfully.", "success");
-            await allFetchStaffs();
-            return response.data;
-        } catch (error) {
-            flashStore.show(error.response?.data?.message || "Failed to create staff.", "error");
-            throw error;
-        }
+        const response = await axiosInstance.post("/admin/create_staff", staffData);
+        await allFetchStaffs();
+        return response.data;
     }
-
 
     return {
         allStaffs,
@@ -139,7 +112,6 @@ export const useStaffStore = defineStore("adminStaff", () => {
         fetchStaffs,
         handelEditStaff,
         createStaff
-
     }
 
 })

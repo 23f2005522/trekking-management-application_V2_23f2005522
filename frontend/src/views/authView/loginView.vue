@@ -21,6 +21,7 @@ const handelLogin = async (e) => {
     localStorage.setItem('access_token', data.access_token)
     localStorage.setItem('role', data.role)
     localStorage.setItem('username', data.username)
+    localStorage.setItem('user_id', data.user.id)
 
     // set the user in the userStore
     console.log(data)

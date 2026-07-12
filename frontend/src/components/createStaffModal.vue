@@ -1,6 +1,5 @@
 <script setup>
 import { ref } from 'vue'
-import { Modal } from 'bootstrap'
 import { useStaffStore } from '@/stores/admin/staffStore'
 import { useFlashStore } from '@/stores/flashStore'
 
@@ -42,7 +41,7 @@ const handleCreateStaff = async (e) => {
   }
 
   try {
-    await staffStore.createStaff({
+    const data = await staffStore.createStaff({
       username: formData.value.username,
       email: formData.value.email,
       phone: formData.value.phone,
@@ -52,11 +51,9 @@ const handleCreateStaff = async (e) => {
       contact_number: formData.value.contact_number || undefined,
       staff_bio: formData.value.staff_bio || undefined,
     })
-    resetForm()
-    const modalEl = document.getElementById('createStaffModal')
-    if (modalEl) Modal.getOrCreateInstance(modalEl).hide()
-  } catch {
-    // flash message handled in store
+    flashStore.show(data?.message || 'Staff created successfully.', 'success')
+  } catch (error) {
+    flashStore.show(error.response?.data?.message || 'Failed to create staff.', 'error')
   }
 }
 </script>
@@ -68,6 +65,8 @@ const handleCreateStaff = async (e) => {
     tabindex="-1"
     aria-labelledby="createStaffModalLabel"
     aria-hidden="true"
+    data-bs-backdrop="static"
+    @hidden.bs.modal="resetForm"
   >
     <div class="modal-dialog modal-dialog-centered modal-lg">
       <div class="modal-content">

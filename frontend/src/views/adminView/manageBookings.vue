@@ -1,11 +1,17 @@
 <script setup>
 import { onMounted } from 'vue'
 import { useBookingStore } from '@/stores/admin/bookingStore'
+import { useFlashStore } from '@/stores/flashStore'
 
 const bookingStore = useBookingStore()
+const flashStore = useFlashStore()
 
-onMounted(() => {
-  bookingStore.fetchAllBookings()
+onMounted(async () => {
+  try {
+    await bookingStore.fetchAllBookings()
+  } catch (error) {
+    flashStore.show(error.response?.data?.message || 'Failed to fetch bookings.', 'error')
+  }
 })
 </script>
 

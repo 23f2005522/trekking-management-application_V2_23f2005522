@@ -1,4 +1,7 @@
-from flask import Blueprint, jsonify, request
+from datetime import datetime
+import os
+
+from flask import Blueprint, jsonify, request, send_file
 from flask_jwt_extended import get_jwt_identity, jwt_required
 
 from model.model import *
@@ -507,3 +510,96 @@ def get_trekking_history():
             ),
             500,
         )
+
+
+
+
+# ASYNC JOB SERIALIZER
+
+def export_job_serializer(job):
+    return {
+        "id": job.id,
+        "status": job.status.value if job.status else None,
+        "type_of_report": job.type_of_report.value if job.type_of_report else None,
+        "file_path": os.path.basename(job.file_path) if job.file_path else None,
+        "created_at": job.created_at.strftime("%Y-%m-%d %H:%M:%S") if job.created_at else None,
+    }
+
+
+# queue async CSV export of trekking history
+@trekker_bp.route("/export-history", methods=["POST"])
+@jwt_required()
+@role_required(UserRole.TREKKER)
+def start_export_history():
+    try:
+        user_id = int(get_jwt_identity())
+        user = UserModel.query.get(user_id)
+
+        if not user:
+            return jsonify({"message": "User not found."}), 404
+
+        job = ExportJobModel(
+            user_id=user.id,
+            status=ExportStatus.PENDING,
+            type_of_report=ReportType.TREKKING_HISTORY,
+        )
+        db.session.add(job)
+        db.session.commit()
+
+        from tasks import export_trekker_history_csv
+
+        export_trekker_history_csv.delay(job.id)
+
+        return jsonify({
+            "message": "Export started. You will be notified when your CSV is ready.",
+            "job_id": job.id,
+        }), 202
+
+    except Exception as e:
+        db.session.rollback()
+        print(f"Error starting export job: {e}")
+        return jsonify({"message": "An error occurred while starting export."}), 500
+
+
+# list past export jobs for the logged-in trekker
+@trekker_bp.route("/export-jobs", methods=["GET"])
+@jwt_required()
+@role_required(UserRole.TREKKER)
+def list_export_jobs():
+    user_id = int(get_jwt_identity())
+    jobs = (
+        ExportJobModel.query.filter_by(user_id=user_id)
+        .order_by(ExportJobModel.created_at.desc())
+        .all()
+    )
+    jobs_json = [export_job_serializer(job) for job in jobs]
+
+    return jsonify({
+        "message": "Export jobs fetched successfully.",
+        "export_jobs": jobs_json,
+    }), 200
+
+
+# download completed CSV export (trekker can only download their own)
+@trekker_bp.route("/export/<int:job_id>/download", methods=["GET"])
+@jwt_required()
+@role_required(UserRole.TREKKER)
+def download_export(job_id):
+    user_id = int(get_jwt_identity())
+    job = ExportJobModel.query.get(job_id)
+
+    if not job or job.user_id != user_id:
+        return jsonify({"message": "Export job not found."}), 404
+
+    if job.status != ExportStatus.COMPLETED or not job.file_path:
+        return jsonify({"message": "Export is not ready yet."}), 400
+
+    if not os.path.isfile(job.file_path):
+        return jsonify({"message": "Export file not found on server."}), 404
+
+    return send_file(
+        job.file_path,
+        as_attachment=True,
+        download_name=os.path.basename(job.file_path),
+        mimetype="text/csv",
+    )

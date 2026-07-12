@@ -7,21 +7,34 @@ This is **Version 2** of the Trekking Management Application, developed using **
 ---
 [V1_GitHub Repository URL](https://github.com/23f2005522/trekking-management-application_23f2005522)
 ---
+
+# Prerequisites
+
+Install these before starting:
+
+| Tool | Purpose |
+|------|---------|
+| **Python 3.10+** | Backend |
+| **Node.js 18+** | Frontend |
+| **Redis** | Background jobs (Celery) + live notifications (Flask-SSE) |
+| **MailHog** (optional) | Local email testing |
+
+Verify Redis is working:
+
+```powershell
+redis-cli ping
+```
+
+Expected output: `PONG`
+
+---
+
 # Installation (Windows)
 
 ## Step 1: Clone the repository
 
-Open a terminal and run:
-
 ```bash
 git clone https://github.com/23f2005522/trekking-management-application_v2_23f2005522.git
-```
-
----
-
-## Step 2: Navigate to the project directory
-
-```bash
 cd trekking-management-application_v2_23f2005522
 ```
 
@@ -29,53 +42,47 @@ cd trekking-management-application_v2_23f2005522
 
 # Backend Setup
 
-## Step 3: Navigate to the backend directory
+## Step 2: Navigate to the backend directory
 
 ```bash
 cd backend
 ```
 
----
-
-## Step 4: Create a virtual environment (Optional but recommended)
+## Step 3: Create a virtual environment (recommended)
 
 ```bash
 python -m venv venv
 ```
 
----
+## Step 4: Activate the virtual environment
 
-## Step 5: Activate the virtual environment
-
-### Windows PowerShell
+**Windows PowerShell**
 
 ```powershell
 .\venv\Scripts\Activate.ps1
 ```
 
-### Windows Command Prompt
+**Windows Command Prompt**
 
 ```cmd
 venv\Scripts\activate
 ```
 
----
-
-## Step 6: Install the required dependencies
+## Step 5: Install dependencies
 
 ```bash
 pip install -r requirements.txt
 ```
 
----
+Includes Flask, Celery, Redis client, and Flask-SSE.
 
-## Step 7: Apply database migrations
+## Step 6: Apply database migrations
 
 ```bash
 flask db upgrade
 ```
 
-If this is your first time running the project:
+First time only:
 
 ```bash
 flask db init
@@ -85,86 +92,148 @@ flask db upgrade
 
 ---
 
-## Step 8: Start the Flask backend
+# Running the Application
 
-```bash
+The app needs **multiple terminals** running at the same time. Start them in this order:
+
+```text
+1. Redis
+2. Flask backend
+3. Celery worker
+4. Celery Beat
+5. MailHog (optional)
+6. Vue frontend
+```
+
+---
+
+## Terminal 1 — Redis
+
+```powershell
+redis-server
+```
+
+Redis is used for:
+
+| Redis DB | Purpose |
+|----------|---------|
+| 0 | Flask-SSE (live notifications) |
+| 1 | Celery task queue |
+| 2 | Celery task results |
+
+Settings: `backend/config/config.py`
+
+---
+
+## Terminal 2 — Flask Backend
+
+```powershell
+cd backend
+.\venv\Scripts\Activate.ps1
 python main.py
 ```
 
-The backend will start at:
+Backend URL: `http://127.0.0.1:5000`
 
-```
-http://127.0.0.1:5000
+> The database is seeded automatically on first run with default users and sample data.
+
+---
+
+## Terminal 3 — Celery Worker
+
+```powershell
+cd backend
+.\venv\Scripts\Activate.ps1
+celery -A celery_worker.celery_app worker --loglevel=info --pool=solo -n worker1@%h
 ```
 
-> **Note**
->
-> The application automatically seeds the database with default users and sample data on the first run.
+Runs background tasks (emails, reports, CSV export). Use **only one** worker at a time.
+
+**Why these extra flags on Windows?**
+
+- **`--pool=solo`** — On Windows, Celery cannot run the normal way (multiple workers in the background). It will crash. `solo` tells Celery: *run one job at a time, in this same terminal*. That works fine on Windows.
+- **`-n worker1@%h`** — Gives your worker a name (like `worker1@YourPCName`). If you accidentally open the worker **twice**, both copies might run the same email or export job **two times**. A unique name helps you avoid that — run **only one** worker terminal.
+
+---
+
+## Terminal 4 — Celery Beat (Scheduler)
+
+```powershell
+cd backend
+.\venv\Scripts\Activate.ps1
+celery -A celery_worker.celery_app beat --loglevel=info
+```
+
+Scheduled jobs (config in `backend/celery_worker.py`):
+
+| Job | Schedule |
+|-----|----------|
+| Daily trek alert | 8:00 AM daily |
+| Monthly admin report | 9:00 AM on the 1st of each month |
+
+Use **only one** Beat process at a time.
+
+---
+
+## Terminal 5 — MailHog (optional)
+
+For viewing emails locally without a real SMTP server:
+
+```powershell
+.\MailHog_windows_amd64.exe
+```
+
+| Service | Address |
+|---------|---------|
+| SMTP | `localhost:1025` |
+| Web UI | [http://localhost:8025](http://localhost:8025) |
 
 ---
 
 # Frontend Setup
 
-Open **another terminal**.
-
-## Step 9: Navigate to the frontend directory
+## Step 7: Navigate to the frontend directory
 
 ```bash
 cd frontend
 ```
 
----
-
-## Step 10: Install frontend dependencies
+## Step 8: Install dependencies
 
 ```bash
 npm install
 ```
 
----
-
-## Step 11: Start the Vue development server
+## Step 9: Start the development server
 
 ```bash
 npm run dev
 ```
 
-The frontend will start at:
-
-```
-http://localhost:5173
-```
+Frontend URL: `http://localhost:5173`
 
 ---
 
 # Default Seed Data
 
-Additional seeded users can be found in:
-
-```
-backend/db/seed_data.py
-```
+More users in `backend/db/seed_data.py`.
 
 ## Admin
 
-| Email           | Password |
-| --------------- | -------- |
-| `admin@tma.com` | `admin`  |
-
----
+| Email | Password |
+|-------|----------|
+| `admin@tma.com` | `admin` |
 
 ## Trek Staff
 
-| Email                 | Password |
-| --------------------- | -------- |
-| `dummy_staff@tma.com` | `staff`  |
-
----
+| Email | Password |
+|-------|----------|
+| `dummy_staff@tma.com` | `staff` |
 
 ## Trekker
 
-| Email           | Password  |
-| --------------- | --------- |
+| Email | Password |
+|-------|----------|
 | `dummy@tma.com` | `trekker` |
 
 ---
@@ -177,6 +246,9 @@ backend/db/seed_data.py
 - Flask SQLAlchemy
 - Flask-Migrate
 - Flask-JWT-Extended
+- Flask-SSE
+- Celery
+- Redis
 - SQLite
 
 ### Frontend
@@ -196,20 +268,26 @@ backend/db/seed_data.py
 trekking-management-application_v2_23f2005522
 │
 ├── backend
-│   ├── config
-│   ├── db
-│   ├── installer
-│   ├── migrations
-│   ├── model
-│   ├── routes
-│   ├── utils
+│   ├── config/              # App config (Redis, MailHog, JWT)
+│   ├── db/                  # Database setup + seed data
+│   ├── exports/             # Generated CSV files (gitignored)
+│   ├── migrations/
+│   ├── model/
+│   ├── routes/
+│   ├── templates/           # Email HTML templates
+│   ├── utils/
+│   ├── celery_worker.py     # Celery app + Beat schedule
+│   ├── tasks.py             # Background tasks
 │   ├── main.py
 │   └── requirements.txt
 │
 ├── frontend
-│   ├── public
-│   ├── src
-│   ├── utils
+│   ├── public/
+│   ├── src/
+│   │   ├── components/
+│   │   ├── stores/
+│   │   ├── views/
+│   │   └── utils/
 │   ├── package.json
 │   └── vite.config.js
 │
@@ -218,9 +296,23 @@ trekking-management-application_v2_23f2005522
 
 ---
 
+# Troubleshooting (Windows)
+
+| Problem | Fix |
+|---------|-----|
+| `SpawnPoolWorker` / `PermissionError` | Use `--pool=solo` on the Celery worker |
+| `unknown command HELLO` (Redis) | Use `redis>=4.5,<5.0.0` in requirements.txt |
+| Duplicate Celery tasks | Kill old celery processes; run only 1 worker + 1 beat |
+| Export job stuck on Pending | Start the Celery worker (Terminal 3) |
+| No live notification flash | Ensure Redis is running; log out and log in again |
+| Emails not showing | Start MailHog; open [http://localhost:8025](http://localhost:8025) |
+
+---
+
 # Notes
 
-- This guide is intended for **Windows** users.
-- Always activate the Python virtual environment before running the backend.
-- Start the Flask backend before running the Vue frontend.
-- Ensure Node.js and Python are installed before beginning the setup.
+- This guide is for **Windows** users.
+- Activate the Python virtual environment before running the backend or Celery.
+- Start **Redis** before Flask, Celery worker, and Celery Beat.
+- Start the Flask backend before the Vue frontend.
+- Ensure Python, Node.js, and Redis are installed before setup.

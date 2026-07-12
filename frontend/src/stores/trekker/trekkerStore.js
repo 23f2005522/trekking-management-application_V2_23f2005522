@@ -1,22 +1,15 @@
 import { defineStore } from "pinia";
 import { ref } from "vue";
 import axiosInstance from "@/utils/axioUtil";
-import { useFlashStore } from "@/stores/flashStore";
 
 export const useTrekkerStore = defineStore("trekker", () => {
-    const flashStore = useFlashStore();
 
-    // state
     const trekkerProfile = ref(null);
     const dashboardStats = ref(null);
     const recentOpenTreks = ref([]);
     const recentBookings = ref([]);
     const loadingDashboard = ref(false);
 
-
-
-
-    // actions
     async function fetchDashboardData() {
         loadingDashboard.value = true;
 
@@ -27,11 +20,7 @@ export const useTrekkerStore = defineStore("trekker", () => {
             dashboardStats.value = data.dashboard_stats;
             recentOpenTreks.value = data.recent_open_treks || [];
             recentBookings.value = data.recent_bookings || [];
-        } catch (error) {
-            flashStore.show(
-                error.response?.data?.message || "Failed to load trekker dashboard.",
-                "error"
-            );
+            return data;
         } finally {
             loadingDashboard.value = false;
         }
@@ -44,16 +33,6 @@ export const useTrekkerStore = defineStore("trekker", () => {
         recentBookings.value = [];
         loadingDashboard.value = false;
     }
-
-
-
-
-    
-
-
-
-
-
 
     return {
         trekkerProfile,

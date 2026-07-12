@@ -2,9 +2,21 @@
 import { onMounted, ref } from 'vue'
 import StaffManageTrekModal from '@/components/staffManageTrekModal.vue'
 import { userStaffStore } from '@/stores/staff/staffStore'
+import { useFlashStore } from '@/stores/flashStore'
 
 const staffStore = userStaffStore()
+const flashStore = useFlashStore()
 const selectedTrekId = ref(null)
+
+const openManageModal = async (trek) => {
+  selectedTrekId.value = trek.id
+  try {
+    await staffStore.fetchTrekById(trek.id)
+  } catch (error) {
+    flashStore.show(error.response?.data?.message || 'Failed to load trek details.', 'error')
+  }
+}
+
 
 const getStatusBadgeClass = (status) => {
   const normalizedStatus = String(status || '').toLowerCase()
@@ -36,14 +48,13 @@ const formatDisplayDate = (dateString) => {
   }).format(date)
 }
 
-const openManageModal = (trek) => {
-  selectedTrekId.value = trek.id
-}
-
-
 //fetch the dashboard data when the component is mounted
-onMounted(() => {
-  staffStore.fetchDashboardData()
+onMounted(async () => {
+  try {
+    await staffStore.fetchDashboardData()
+  } catch (error) {
+    flashStore.show(error.response?.data?.message || 'Failed to load dashboard data.', 'error')
+  }
 })
 
 
@@ -174,6 +185,7 @@ onMounted(() => {
 
                   <td>
                     <button
+                      type="button"
                       class="btn btn-outline-success btn-sm"
                       data-bs-toggle="modal"
                       data-bs-target="#staffManageTrekModal"
