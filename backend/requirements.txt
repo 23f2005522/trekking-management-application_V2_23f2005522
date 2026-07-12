@@ -4,7 +4,7 @@ flask_migrate
 werkzeug
 flask_cors
 flask_jwt_extended
-
+flask-caching
 
 redis>=4.5,<5.0.0
 celery

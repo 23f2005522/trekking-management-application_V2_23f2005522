@@ -6,6 +6,7 @@ from flask_migrate import Migrate
 from flask_sse import sse
 from db.db import db 
 from db.seed_data import master_seed
+from extensions.cache import cache
 
 #Routes import
 from routes.health_routes import health_blueprint
@@ -34,6 +35,7 @@ cors = CORS(app , origins="*", supports_credentials=True) # initializing CORS wi
 
 app.register_blueprint(sse, url_prefix="/stream") # registering sse blueprint for streaming messages to clients
 
+cache.init_app(app) # initializing cache with app
 
 
 with app.app_context(): # creating app context to create tables and seed data

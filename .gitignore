@@ -49,8 +49,5 @@ celerybeat-schedule.dir
 backend/exports/*
 !backend/exports/.gitkeep
 
-# Session / dev notes & handoff docs (keep README.md for repo)
-*.md
-!README.md
-!frontend/README.md
+
 

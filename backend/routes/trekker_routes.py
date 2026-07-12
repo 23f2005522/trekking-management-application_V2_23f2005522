@@ -1,9 +1,13 @@
 from datetime import datetime
 import os
+import time
 
 from flask import Blueprint, jsonify, request, send_file
 from flask_jwt_extended import get_jwt_identity, jwt_required
 
+from config.config import Config
+from utils.cache_utility import clear_trekker_open_treks_cache
+from extensions.cache import cache
 from model.model import *
 from utils.auth_utility import role_required
 
@@ -228,8 +232,10 @@ def get_trekker_profile():
 @trekker_bp.route("/treks", methods=["GET"])
 @jwt_required()
 @role_required(UserRole.TREKKER)
+@cache.cached(timeout=120, key_prefix=Config.TREKKER_OPEN_TREKS_KEY, query_string=True) #query_string=True --> separate cache per filter combo (/treks, /treks?difficulty=easy, etc.)
 def get_treks():
-
+    # delay 2 seconds
+    time.sleep(2)
     try:
         query = TrekModel.query.filter_by(status=TrekStatus.OPEN)
 
@@ -319,6 +325,7 @@ def get_trekker_bookings():
 
 
 # book a slot on an open trek (re-book works if previously canceled)
+## clear the trekker_open_treks cache after booking a trek
 @trekker_bp.route("/booktrek", methods=["POST"])
 @jwt_required()
 @role_required(UserRole.TREKKER)
@@ -362,6 +369,9 @@ def book_trek():
             trek.available_slots -= 1
             db.session.commit()
 
+            ## clear the trekker_open_treks cache after booking a trek
+            clear_trekker_open_treks_cache()
+
             return (
                 jsonify(
                     {
@@ -386,6 +396,7 @@ def book_trek():
         db.session.add(new_booking)
         trek.available_slots -= 1
         db.session.commit()
+        clear_trekker_open_treks_cache()
     except Exception as e:
         db.session.rollback()
         print(f"Error occurred while booking trek: {e}")
@@ -406,6 +417,7 @@ def book_trek():
 
 
 # cancel a booking and put the trek slot back
+## clear the trekker_open_treks cache after canceling a booking
 @trekker_bp.route("/deletebooking/<int:booking_id>", methods=["GET"])
 @jwt_required()
 @role_required(UserRole.TREKKER)
@@ -436,6 +448,10 @@ def cancel_booking(booking_id):
         booking.trek.available_slots += 1
         booking.booking_cancel_date = datetime.utcnow()
         db.session.commit()
+
+        ## clear the trekker_open_treks cache after canceling a booking
+        clear_trekker_open_treks_cache()
+
     except Exception as e:
         db.session.rollback()
         print(f"Error occurred while canceling booking: {e}")

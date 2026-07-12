@@ -1,8 +1,8 @@
 from flask import Blueprint, jsonify, request
 from flask_jwt_extended import get_jwt_identity, jwt_required
-
 from utils.auth_utility import role_required
 from model.model import *
+from utils.cache_utility import clear_trekker_open_treks_cache
 
 staff_bp = Blueprint("staff_routes", __name__, url_prefix="/api/staff")
 
@@ -239,6 +239,7 @@ def get_trek_participants(trek_id):
 
 
 # change trek status (open, closed, ongoing, completed etc)
+# clear the trekker_open_treks cache after updating the trek status
 @staff_bp.route("/treks/<int:trek_id>/status", methods=["POST"])
 @jwt_required()
 @role_required(UserRole.STAFF)
@@ -308,6 +309,9 @@ def update_assigned_trek_status(trek_id):
         trek.status = TrekStatus(new_status) # update the status of the trek to the new status as normal 
         db.session.commit()
 
+        ## clear the trekker_open_treks cache after updating the trek status
+        clear_trekker_open_treks_cache()
+
         total_participants = sum(
             1 for booking in trek.bookings if booking.status == BookingStatus.BOOKED
         )
@@ -336,6 +340,7 @@ def update_assigned_trek_status(trek_id):
 
 
 # update available slots on an assigned trek
+# clear the trekker_open_treks cache after updating the trek available slots
 @staff_bp.route("/treks/<int:trek_id>/slots", methods=["POST"])
 @jwt_required()
 @role_required(UserRole.STAFF)
@@ -382,6 +387,9 @@ def update_assigned_trek_slots(trek_id):
     try:
         trek.available_slots = new_available_slots
         db.session.commit()
+
+        ## clear the trekker_open_treks cache after updating the trek available slots
+        clear_trekker_open_treks_cache()
 
         total_participants = sum(
             1 for booking in trek.bookings if booking.status == BookingStatus.BOOKED

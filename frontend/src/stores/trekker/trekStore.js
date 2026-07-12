@@ -48,25 +48,22 @@ export const useTrekStore = defineStore("trekkerTrek", () => {
     }
 
 
-    const bookingLoading = ref(false)
+    const bookingTrekLoading = ref(false)
 
     async function bookTrek() {
         if (!selectedTrek.value) {
             throw new Error("No trek selected.")
         }
 
-        bookingLoading.value = true
-
+        bookingTrekLoading.value = true
         try {
             const response = await axiosInstance.post('/trekker/booktrek', {
-                trek_id: selectedTrek.value.id,
+            trek_id: selectedTrek.value.id,
             })
-
-            
 
             return response.data
         } finally {
-            bookingLoading.value = false
+            bookingTrekLoading.value = false
         }
     }
 
@@ -74,11 +71,11 @@ export const useTrekStore = defineStore("trekkerTrek", () => {
     return {
         availableTreks,
         filteredTreks,
-        loadingTreks,
+        loadingTreks,       
         filters,
         selectedTrek,
         fetchTreks,
-        bookingLoading,
+        bookingTrekLoading,
         bookTrek,
 
     }

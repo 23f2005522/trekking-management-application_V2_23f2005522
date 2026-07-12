@@ -8,13 +8,10 @@ const flashStore = useFlashStore()
 async function confirmBooking() {
   try {
     await trekStore.bookTrek()
-    await trekStore.fetchTreks()
+    await trekStore.fetchTreks() // refresh the treks list again to show the updated slots left
     flashStore.show('Trek booked.', 'success')
   } catch (error) {
-    flashStore.show(
-      error.response?.data?.message || 'An error occurred while booking the trek.',
-      'error'
-    )
+    flashStore.show(error.response?.data?.message || 'An error occurred while booking the trek.', 'error')
   }
 }
 </script>
@@ -128,13 +125,29 @@ async function confirmBooking() {
         </div>
 
         <div class="modal-footer">
-          <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">
+          <button
+            type="button"
+            class="btn btn-outline-secondary"
+            data-bs-dismiss="modal"
+            :disabled="trekStore.bookingTrekLoading"
+          >
             Cancel
           </button>
 
-          <button type="button" class="btn btn-success" @click="confirmBooking">
-            <i class="bi bi-check-circle-fill me-2"></i>
-            Confirm Booking
+          <button
+            type="button"
+            class="btn btn-success"
+            :disabled="trekStore.bookingTrekLoading"
+            @click="confirmBooking"
+          >
+            <span v-if="trekStore.bookingTrekLoading">
+              <span class="spinner-border spinner-border-sm me-2"></span>
+              Booking...
+            </span>
+            <span v-else>
+              <i class="bi bi-check-circle-fill me-2"></i>
+              Confirm Booking
+            </span>
           </button>
         </div>
       </div>
