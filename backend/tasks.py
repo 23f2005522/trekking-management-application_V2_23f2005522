@@ -204,6 +204,33 @@ def _build_monthly_report_data():
 
 
 
+def _format_monthly_report_summary(report_data):
+    """Build a plain-text summary of the monthly report for report_logs storage."""
+    lines = [
+        f"Monthly Report — {report_data['month_label']}",
+        f"Treks conducted: {report_data['treks_conducted']}",
+        f"Participants: {report_data['participants']}",
+        f"Total bookings: {report_data['total_monthly_bookings']}",
+        f"Revenue: Rs {report_data['monthly_revenue']:.2f}",
+    ]
+
+    if report_data["popular_treks"]:
+        lines.append("Popular treks:")
+        for trek in report_data["popular_treks"]:
+            lines.append(
+                f"  - {trek['trek_name']}: {trek['booking_count']} booking(s)"
+            )
+
+    if report_data["completed_trek_names"]:
+        lines.append(
+            "Completed treks: " + ", ".join(report_data["completed_trek_names"])
+        )
+
+    return "\n".join(lines)
+
+
+
+
 
 # Daily trek alert — notify trekkers about approved (on the way) and open (book now) treks
 
@@ -378,6 +405,8 @@ def send_monthly_admin_report():
     report_log = ReportLogsModel(
 
         type_of_report=ReportType.MONTHLY,
+
+        report_summary=_format_monthly_report_summary(report_data),
 
         status=ExportStatus.COMPLETED,
 

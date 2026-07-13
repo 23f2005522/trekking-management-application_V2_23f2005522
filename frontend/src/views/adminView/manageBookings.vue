@@ -35,7 +35,7 @@ onMounted(async () => {
                 v-model="bookingStore.bookingSearchQuery"
                 type="text"
                 class="form-control border-start-0"
-                placeholder="Search by trekker, trek, status, or booking ID..."
+                placeholder="Search by trekkerName, trek Name, Trek Status, or booking ID..."
               />
             </div>
           </div>
@@ -65,7 +65,7 @@ onMounted(async () => {
               <th scope="col">Booking Date</th>
               <th scope="col">Amount Paid</th>
               <th scope="col">Payment Status</th>
-              <th scope="col">Status</th>
+              <th scope="col">Trek Status</th>
             </tr>
           </thead>
 

@@ -101,6 +101,7 @@ onMounted(async () => {
                 <th scope="col">Email</th>
                 <th scope="col">Status</th>
                 <th scope="col">Actions</th>
+                <th scope="col">Edit Staff</th>
               </tr>
             </thead>
 

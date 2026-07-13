@@ -35,6 +35,7 @@ const handleLogout = async () => {
   if (!result.success) {
     flashStore.show(result.message, 'error')
   }else{
+    flashStore.show('Logged out successfully', 'success')
     router.push('/login')
   }
 }

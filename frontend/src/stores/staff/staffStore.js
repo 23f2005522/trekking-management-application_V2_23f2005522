@@ -21,7 +21,7 @@ export const userStaffStore = defineStore("staffDashboard", () => {
     const dashboardStats = computed(() => {
         const totalAssignedTreks = assignedTreks.value.length;
         const activeAssignedTreks = assignedTreks.value.filter(
-            (trek) => trek.status === "open" || trek.status === "approved"
+            (trek) => trek.status === "open"
         ).length;
         const totalParticipants = assignedTreks.value.reduce(
             (total, trek) => total + (trek.total_participants || 0),

@@ -1,5 +1,5 @@
 <script setup>
-import { onMounted, ref } from 'vue'
+import { onMounted } from 'vue'
 import { useAdminStore } from '@/stores/admin/adminStore'
 import { useFlashStore } from '@/stores/flashStore'
 import { storeToRefs } from 'pinia'
@@ -8,7 +8,6 @@ import Loader from '@/components/Loader.vue'
 const adminStore = useAdminStore()
 const flashStore = useFlashStore()
 const { report, loadingReport } = storeToRefs(adminStore)
-const jobLoading = ref(false)
 
 onMounted(async () => {
   try {
@@ -17,30 +16,6 @@ onMounted(async () => {
     flashStore.show(error.response?.data?.message || 'Failed to load report.', 'error')
   }
 })
-
-async function triggerDailyReminder() {
-  jobLoading.value = true
-  try {
-    const data = await adminStore.triggerDailyReminder()
-    flashStore.show(data.message || 'Daily alert job started.', 'success')
-  } catch (error) {
-    flashStore.show(error.response?.data?.message || 'Failed to start daily alert.', 'error')
-  } finally {
-    jobLoading.value = false
-  }
-}
-
-async function triggerMonthlyReport() {
-  jobLoading.value = true
-  try {
-    const data = await adminStore.triggerMonthlyReport()
-    flashStore.show(data.message || 'Monthly report job started.', 'success')
-  } catch (error) {
-    flashStore.show(error.response?.data?.message || 'Failed to start monthly report.', 'error')
-  } finally {
-    jobLoading.value = false
-  }
-}
 </script>
 
 <template>
@@ -50,32 +25,6 @@ async function triggerMonthlyReport() {
       <i class="bi bi-graph-up-arrow text-primary"></i>
       Trekking Statistics & Reports
     </h2>
-
-    <!-- Background job triggers -->
-    <div class="card border-0 shadow-sm mb-4">
-      <div class="card-body d-flex flex-wrap gap-2 align-items-center">
-        <span class="text-muted me-2 fw-semibold">Manual Jobs:</span>
-        <button
-          class="btn btn-primary"
-          :disabled="jobLoading"
-          @click="triggerDailyReminder"
-        >
-          <i class="bi bi-envelope me-1"></i>
-          Send Daily Trek Alert
-        </button>
-        <button
-          class="btn btn-success"
-          :disabled="jobLoading"
-          @click="triggerMonthlyReport"
-        >
-          <i class="bi bi-file-earmark-bar-graph me-1"></i>
-          Generate Monthly Report
-        </button>
-        <small class="text-muted ms-2">
-          Jobs run in Celery — check MailHog at localhost:8025
-        </small>
-      </div>
-    </div>
 
     <Loader v-if="loadingReport" />
 

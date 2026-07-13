@@ -16,7 +16,7 @@ class Config:
     # MailHog — (local email testing)
     SMTP_HOST = "localhost"
     SMTP_PORT = 1025
-    SENDER_EMAIL = "admin@tma.com"
+    SENDER_EMAIL = "mail@TMA.com"
     SENDER_PASSWORD = ""
     # Cashing
     CACHE_TYPE = "RedisCache"

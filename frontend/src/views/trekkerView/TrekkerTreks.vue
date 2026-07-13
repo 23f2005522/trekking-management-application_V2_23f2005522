@@ -46,29 +46,41 @@ function getDifficultyClass(difficulty) {
         v-model="trekStore.filters.search"
         type="text"
         class="form-control"
-        placeholder="Search trek names..."
+        placeholder="Search by name, location, or description..."
         style="max-width: 320px"
       />
 
       <select v-model="trekStore.filters.difficulty" class="form-select" style="max-width: 180px">
         <option value="">Difficulty: All</option>
-        <option value="easy">Easy</option>
-        <option value="moderate">Moderate</option>
-        <option value="difficult">Difficult</option>
+        <option
+          v-for="difficulty in trekStore.filterOptions.difficulties"
+          :key="difficulty"
+          :value="difficulty"
+        >
+          {{ difficulty.charAt(0).toUpperCase() + difficulty.slice(1) }}
+        </option>
       </select>
 
-      <select v-model="trekStore.filters.location" class="form-select" style="max-width: 180px">
+      <select v-model="trekStore.filters.location" class="form-select" style="max-width: 220px">
         <option value="">Location: All</option>
-        <option value="Nepal">Nepal</option>
-        <option value="Uttarakhand">Uttarakhand</option>
-        <option value="Himachal">Himachal</option>
+        <option
+          v-for="location in trekStore.filterOptions.locations"
+          :key="location"
+          :value="location"
+        >
+          {{ location }}
+        </option>
       </select>
 
       <select v-model="trekStore.filters.duration" class="form-select" style="max-width: 180px">
         <option value="">Duration: All</option>
-        <option value="3">3 Days</option>
-        <option value="5">5 Days</option>
-        <option value="8">8 Days</option>
+        <option
+          v-for="duration in trekStore.filterOptions.durations"
+          :key="duration"
+          :value="String(duration)"
+        >
+          {{ duration }} Days
+        </option>
       </select>
     </div>
 

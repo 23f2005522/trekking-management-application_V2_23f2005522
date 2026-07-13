@@ -3,6 +3,7 @@ import os
 import time
 
 from flask import Blueprint, jsonify, request, send_file
+from sqlalchemy import or_
 from flask_jwt_extended import get_jwt_identity, jwt_required
 
 from config.config import Config
@@ -228,41 +229,71 @@ def get_trekker_profile():
         )
 
 
+def _get_open_trek_filter_options():
+    open_treks = TrekModel.query.filter_by(status=TrekStatus.OPEN).all()
+    locations = sorted({trek.location.strip() for trek in open_treks if trek.location})
+    durations = sorted({trek.duration for trek in open_treks})
+    return {
+        "locations": locations,
+        "durations": durations,
+        "difficulties": [difficulty.value for difficulty in TrekDifficulty],
+    }
+
+
+def _apply_open_trek_filters(query):
+    difficulty = request.args.get("difficulty", "").strip().lower()
+    location = request.args.get("location", "").strip()
+    duration = request.args.get("duration", "").strip()
+    search = request.args.get("search", "").strip()
+
+    if difficulty:
+        try:
+            query = query.filter(
+                TrekModel.difficulty == TrekDifficulty(difficulty)
+            )
+        except ValueError:
+            query = query.filter(False)
+
+    if location:
+        query = query.filter(TrekModel.location.ilike(f"%{location}%"))
+
+    if duration:
+        try:
+            query = query.filter(TrekModel.duration == int(duration))
+        except ValueError:
+            query = query.filter(False)
+
+    if search:
+        pattern = f"%{search}%"
+        query = query.filter(
+            or_(
+                TrekModel.name.ilike(pattern),
+                TrekModel.location.ilike(pattern),
+                TrekModel.description.ilike(pattern),
+            )
+        )
+
+    return query
+
+
 # browse open treks with optional search and filters
 @trekker_bp.route("/treks", methods=["GET"])
 @jwt_required()
 @role_required(UserRole.TREKKER)
 @cache.cached(timeout=120, key_prefix=Config.TREKKER_OPEN_TREKS_KEY, query_string=True) #query_string=True --> separate cache per filter combo (/treks, /treks?difficulty=easy, etc.)
 def get_treks():
-    # delay 2 seconds
-    time.sleep(2)
+    time.sleep(2) # for showing its slow response from the server
     try:
         query = TrekModel.query.filter_by(status=TrekStatus.OPEN)
-
-        difficulty = request.args.get("difficulty")
-        location = request.args.get("location")
-        duration = request.args.get("duration")
-        search = request.args.get("search")
-
-        if difficulty:
-            query = query.filter(TrekModel.difficulty == difficulty)
-
-        if location:
-            query = query.filter(TrekModel.location == location)
-
-        if duration:
-            query = query.filter(TrekModel.duration == duration)
-
-        if search:
-            query = query.filter(TrekModel.name.contains(search))
+        query = _apply_open_trek_filters(query)
 
         treks = query.order_by(TrekModel.created_at.desc()).all()
-
         treks_json = [trek_serializer(trek) for trek in treks]
 
         response = {
             "message": "Treks fetched successfully.",
             "treks": treks_json,
+            "filter_options": _get_open_trek_filter_options(),
         }
 
         return jsonify(response), 200

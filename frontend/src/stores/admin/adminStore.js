@@ -44,16 +44,6 @@ export const useAdminStore = defineStore("Admin", () => {
         }
     }
 
-    async function triggerDailyReminder() {
-        const { data } = await axiosInstance.post("/admin/job/dailyEmailReminder");
-        return data;
-    }
-
-    async function triggerMonthlyReport() {
-        const { data } = await axiosInstance.post("/admin/job/monthlyReport");
-        return data;
-    }
-
     function resetAdminData() {
         admin.value = null;
         dashboardData.value = null;
@@ -71,8 +61,6 @@ export const useAdminStore = defineStore("Admin", () => {
 
         fetchAdminData,
         fetchReport,
-        triggerDailyReminder,
-        triggerMonthlyReport,
         resetAdminData,
     }
 

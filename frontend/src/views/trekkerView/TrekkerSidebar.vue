@@ -84,8 +84,9 @@ const handleLogout = async () => {
   closeSidebar()
   const result = await logout()
   if (!result.success) {
-    flashStore.show(result.message, 'error')
+    return flashStore.show(result.message, 'error')
   }
+  return flashStore.show('Logged out successfully', 'success')
 }
 
 const paths = [
@@ -105,7 +106,7 @@ const paths = [
     icon: 'bi bi-calendar-check',
   },
   {
-    title: 'History',
+    title: 'Trek History',
     path: '/trekker/history',
     icon: 'bi bi-clock-history',
   },

@@ -271,7 +271,7 @@ class ReportLogsModel(BaseModel):
     __tablename__ = "report_logs"
 
     type_of_report = db.Column(db.Enum(ReportType), nullable=False)
-    file_path = db.Column(db.String(200), nullable=True)
+    report_summary = db.Column(db.String(1000), nullable=True)
     status = db.Column(
         db.Enum(ExportStatus), default=ExportStatus.PENDING, nullable=False
     )

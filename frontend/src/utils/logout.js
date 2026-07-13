@@ -7,11 +7,11 @@ export default async function logout() {
     notificationStore.disconnectSSE();
 
     try {
+        await axiosInstance.post('/auth/logout');
         localStorage.removeItem('access_token');
         localStorage.removeItem('role');
         localStorage.removeItem('username');
         localStorage.removeItem('user_id');
-        await axiosInstance.post('/auth/logout');
         return { success: true };
     } catch (error) {
         return {

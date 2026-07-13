@@ -34,6 +34,7 @@ const handleLogout = async () => {
   if (!result.success) {
     flashStore.show(result.message, 'error')
   }
+  flashStore.show('Logged out successfully', 'success')
 }
 
 const paths = [
