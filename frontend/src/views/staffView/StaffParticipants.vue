@@ -1,5 +1,6 @@
 <script setup>
 import { computed, onMounted, ref, watch } from 'vue'
+import Loader from '@/components/Loader.vue'
 import { storeToRefs } from 'pinia'
 import { userStaffStore } from '@/stores/staff/staffStore'
 import { useFlashStore } from '@/stores/flashStore'
@@ -160,8 +161,8 @@ onMounted(async () => {
             </div>
           </div>
 
-          <div v-if="loadingParticipants" class="text-center text-muted py-5">
-            Loading participants...
+          <div v-if="loadingParticipants" class="d-flex justify-content-center align-items-center py-5">
+            <Loader />
           </div>
 
           <div v-else class="table-responsive">

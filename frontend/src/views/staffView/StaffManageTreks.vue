@@ -1,12 +1,13 @@
 <script setup>
 import { onMounted } from 'vue'
+import Loader from '@/components/Loader.vue'
 import { storeToRefs } from 'pinia'
 import { userStaffStore } from '@/stores/staff/staffStore'
 import { useFlashStore } from '@/stores/flashStore'
 
 const staffStore = userStaffStore()
 const flashStore = useFlashStore()
-const { assignedTreks, updatingSlotsId } = storeToRefs(staffStore)
+const { assignedTreks, updatingSlotsId, loadingTreks } = storeToRefs(staffStore)
 
 const getStatusBadgeClass = (status) => {
   const normalizedStatus = String(status || '').toLowerCase()
@@ -43,12 +44,13 @@ const updateAvailableSlots = async (trek) => {
     flashStore.show(data?.message || 'Available slots updated successfully.', 'success')
   } catch (error) {
     flashStore.show(error.response?.data?.message || 'Failed to update available slots.', 'error')
+    await staffStore.fetchAssignedTreks()
   }
 }
 
 onMounted(async () => {
   try {
-    await staffStore.fetchDashboardData()
+    await staffStore.fetchAssignedTreks()
   } catch (error) {
     flashStore.show(error.response?.data?.message || 'Failed to load assigned treks.', 'error')
   }
@@ -69,7 +71,11 @@ onMounted(async () => {
       </div>
     </div>
 
-    <div class="row g-4">
+    <div v-if="loadingTreks" class="d-flex justify-content-center align-items-center py-5">
+      <Loader />
+    </div>
+
+    <div v-else class="row g-4">
       <div v-for="trek in assignedTreks" :key="trek.id" class="col-12 col-xl-6">
         <div class="card shadow-sm trek-card h-100 border-0">
           <div class="card-header trek-card-header bg-white border-0 pb-0">

@@ -1,4 +1,6 @@
 <script setup>
+import router from '@/router';
+
 </script>
 
 <template>
@@ -16,7 +18,9 @@
             Discover breathtaking trekking experiences and manage your adventures effortlessly.
           </p>
 
-          <button class="btn btn-warning btn-lg">
+          <button 
+          @click="router.push('/trekker/treks')"
+          class="btn btn-warning btn-lg">
             Explore Treks
           </button>
         </div>

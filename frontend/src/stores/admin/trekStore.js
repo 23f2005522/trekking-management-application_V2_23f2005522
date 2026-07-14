@@ -4,12 +4,13 @@ import axiosInstance from "../../utils/axioUtil";
 
 export const useTrekStore = defineStore("treks", () => {
 
+    // manageTrek
+    // state
     const treks = ref([]);
     const loadingtreks = ref(false);
-    const editingTrek = ref(null)
-    const loadingEditingTrek = ref(false)
     const treksearchQuery = ref("");
 
+    // getters
     const filteredTreks = computed(() => {
         const query = treksearchQuery.value.trim().toLowerCase();
         if (!query) return treks.value;
@@ -25,6 +26,7 @@ export const useTrekStore = defineStore("treks", () => {
         });
     });
 
+    // actions
     async function fetchTreks() {
         loadingtreks.value = true;
         try {
@@ -36,6 +38,30 @@ export const useTrekStore = defineStore("treks", () => {
         }
     }
 
+    async function deleteTrek(trekId) {
+        const { data } = await axiosInstance.post(`/admin/deletetrek/${trekId}`);
+        await fetchTreks();
+        return data;
+    }
+
+    // addTrekModal
+    // state — uses treks (above)
+
+    // actions
+    async function addTrek(trekData) {
+        const { data } = await axiosInstance.post("/admin/addtrek", trekData);
+        await fetchTreks();
+        return data;
+    }
+
+    // editTrekModal
+    // state
+    const editingTrek = ref(null);
+    const loadingEditingTrek = ref(false);
+
+    // getters — savingTrek alias exported in return
+
+    // actions
     async function fetchTrekById(trekId) {
         loadingEditingTrek.value = true;
         editingTrek.value = null;
@@ -63,18 +89,6 @@ export const useTrekStore = defineStore("treks", () => {
         }
     }
 
-    async function deleteTrek(trekId) {
-        const { data } = await axiosInstance.post(`/admin/deletetrek/${trekId}`);
-        await fetchTreks();
-        return data;
-    }
-
-    async function addTrek(trekData) {
-        const { data } = await axiosInstance.post("/admin/addtrek", trekData);
-        await fetchTreks();
-        return data;
-    }
-
     return {
         treks,
         loadingtreks,
@@ -89,6 +103,6 @@ export const useTrekStore = defineStore("treks", () => {
         clearEditingTrek,
         updateTrek,
         deleteTrek,
-        addTrek
+        addTrek,
     };
 });

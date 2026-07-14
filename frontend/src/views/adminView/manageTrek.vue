@@ -2,6 +2,7 @@
 import AddTrekModal from '@/components/addTrekModal.vue'
 import DeleteTrekModal from '@/components/deleteTrekModal.vue'
 import EditTrekModal from '@/components/editTrekModal.vue'
+import Loader from '@/components/Loader.vue'
 import { useTrekStore } from '@/stores/admin/trekStore'
 import { useFlashStore } from '@/stores/flashStore'
 import { onMounted, ref } from 'vue'
@@ -109,7 +110,11 @@ const selectedTrekForDelete = ref(null)
 
     <!-- Table -->
 
-    <div class="card shadow-sm">
+    <div v-if="trekStore.loadingtreks" class="text-center py-5">
+      <Loader />
+    </div>
+
+    <div v-else class="card shadow-sm">
       <div class="table-responsive">
         <table class="table table-hover table-striped align-middle mb-0">
           <thead class="table-light">
@@ -169,18 +174,6 @@ const selectedTrekForDelete = ref(null)
     </div>
   </div>
 </template>
-
-<!-- 
-
-
-<button >
-  Launch demo modal
-</button>
-
-
-
-
--->
 
 <style scoped>
 .card {

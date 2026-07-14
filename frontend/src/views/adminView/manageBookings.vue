@@ -1,5 +1,6 @@
 <script setup>
 import { onMounted } from 'vue'
+import Loader from '@/components/Loader.vue'
 import { useBookingStore } from '@/stores/admin/bookingStore'
 import { useFlashStore } from '@/stores/flashStore'
 
@@ -55,8 +56,11 @@ onMounted(async () => {
 
     <!-- bookings table -->
     <div class="card shadow-sm border-0">
-      <div v-if="!bookingStore.loadingBookings">
-        <table class="table table-hover mb-0">
+      <div v-if="bookingStore.loadingBookings" class="d-flex justify-content-center align-items-center p-5">
+        <Loader />
+      </div>
+
+      <table v-else class="table table-hover mb-0">
           <thead class="bg-success text-white">
             <tr>
               <th scope="col">Booking ID</th>
@@ -111,11 +115,6 @@ onMounted(async () => {
             </tr>
           </tbody>
         </table>
-      </div>
-
-      <div v-else class="d-flex justify-content-center align-items-center p-5">
-        Loading bookings...
-      </div>
     </div>
   </div>
 </template>

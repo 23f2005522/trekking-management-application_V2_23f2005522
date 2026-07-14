@@ -1,5 +1,6 @@
 <script setup>
 import { onMounted, onUnmounted } from 'vue'
+import Loader from '@/components/Loader.vue'
 import { useTrekStore } from '@/stores/admin/trekStore'
 import { useStaffStore } from '@/stores/admin/staffStore'
 import { useFlashStore } from '@/stores/flashStore'
@@ -94,7 +95,9 @@ const handleSaveTrek = async () => {
             </div>
 
             <div class="modal-body p-3">
-              <div v-if="trekStore.loadingEditingTrek" class="text-center py-4">Loading...</div>
+              <div v-if="trekStore.loadingEditingTrek" class="d-flex justify-content-center py-4">
+                <Loader />
+              </div>
               <form v-else-if="trekStore.editingTrek">
                 <div class="row g-3">
                   <div class="col-md-6">

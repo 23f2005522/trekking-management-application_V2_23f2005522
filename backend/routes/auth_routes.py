@@ -14,21 +14,9 @@ def register():
     email = (data.get("email") or "").strip()
     phone = (data.get("phone") or "").strip()
     password = (data.get("password") or "").strip()
-    role = (data.get("role") or "trekker").strip()
 
     if not username or not email or not phone or not password:
         return jsonify({"message": "All fields are required."}), 400
-
-    if role == UserRole.ADMIN.value:
-        return jsonify({"message": "You cannot register as an admin."}), 403
-
-    if role == UserRole.STAFF.value:
-        return jsonify({
-            "message": "Trek staff accounts are created by the administrator only."
-        }), 403
-
-    if role != UserRole.TREKKER.value:
-        return jsonify({"message": "Invalid role. Only trekker registration is allowed."}), 400
 
     user_email_exists = UserModel.query.filter_by(email=email).first()
     user_phone_exists = UserModel.query.filter_by(phone=phone).first()
@@ -146,7 +134,7 @@ def login():
 @auth_bp.route("/logout", methods=["POST"])
 @jwt_required()
 def logout():
-    # Invalidate the JWT token using Redis/DB [Later]
+    # removed the token form the frontend
 
     response = {"message": "Logout successful."}
     return jsonify(response), 200
@@ -161,24 +149,3 @@ def verify():
         "authenticated": True
     }), 200
 
-# for testing the role_required decorator and JWT token
-# @auth_bp.route("/protected", methods=["GET"])
-# @jwt_required()
-# @role_required(UserRole.ADMIN.value)
-
-# def protected():
-#     tokendata = get_jwt ()  # getting the data from the JWT token
-#     userid = tokendata.get("sub")  # getting the user id from the token data
-#     user_emial = tokendata.get("email")  # getting the user email from the token data
-#     user_role = tokendata.get("role")  # getting the user role from the token data
-
-#     print(f"User ID: {userid}, Email: {user_emial}, Role: {user_role}")  # printing the user data to the console
-
-#     response = {
-#         "message": "You have accessed a protected route.",
-#         "user_id": userid,
-#         "user_email": user_emial,
-#         "user_role": user_role,
-#     }
-
-#     return jsonify(response), 200

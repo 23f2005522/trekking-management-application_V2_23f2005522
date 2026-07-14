@@ -1,5 +1,6 @@
 <script setup>
 import ManageTrekkerModal from '@/components/manageTrekkerModal.vue'
+import Loader from '@/components/Loader.vue'
 import { useFlashStore } from '@/stores/flashStore'
 import { userTrekkerStore } from '@/stores/admin/trekkerStore'
 import { onMounted } from 'vue'
@@ -64,14 +65,15 @@ onMounted(async () => {
 
     <!-- Table -->
     <div class="card shadow-sm border-0">
+      <div v-if="TrekkerStore.loadingTrekkers" class="d-flex justify-content-center align-items-center p-5">
+        <Loader />
+      </div>
 
-
-      <div v-if="TrekkerStore.filteredTrekkers.length <= 0" class="card-footer text-muted">
-
+      <div v-else-if="TrekkerStore.filteredTrekkers.length <= 0" class="card-footer text-muted">
         No trekkers found.
       </div>
 
-        <div class="table-responsive" v-else> 
+        <div class="table-responsive" v-else>
         <table class="table table-hover mb-0">
           <thead class="bg-success text-white">
             <tr>

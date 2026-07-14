@@ -3,27 +3,26 @@ import { ref, watch } from 'vue'
 import axiosInstance from '@/utils/axioUtil'
 
 export const useTrekStore = defineStore("trekkerTrek", () => {
-    const availableTreks = ref([])
-    const filteredTreks = ref([])
-    const loadingTreks = ref(false)
 
+    // TrekkerTreks
+    // state
+    const availableTreks = ref([])
+    const loadingTreks = ref(false)
     const filters = ref({
         search: '',
         difficulty: '',
         location: '',
         duration: '',
     })
-
     const filterOptions = ref({
         locations: [],
         durations: [],
         difficulties: ['easy', 'moderate', 'difficult'],
     })
 
-    const selectedTrek = ref(null)
-
     let fetchTimeout = null
 
+    // actions
     function scheduleFetchTreks(delay = 0) {
         if (fetchTimeout) {
             clearTimeout(fetchTimeout)
@@ -79,9 +78,12 @@ export const useTrekStore = defineStore("trekkerTrek", () => {
         }
     }
 
-
+    // BookingModal
+    // state
+    const selectedTrek = ref(null)
     const bookingTrekLoading = ref(false)
 
+    // actions
     async function bookTrek() {
         if (!selectedTrek.value) {
             throw new Error("No trek selected.")
@@ -90,7 +92,7 @@ export const useTrekStore = defineStore("trekkerTrek", () => {
         bookingTrekLoading.value = true
         try {
             const response = await axiosInstance.post('/trekker/booktrek', {
-            trek_id: selectedTrek.value.id,
+                trek_id: selectedTrek.value.id,
             })
 
             return response.data
@@ -99,17 +101,14 @@ export const useTrekStore = defineStore("trekkerTrek", () => {
         }
     }
 
-    
     return {
         availableTreks,
-        filteredTreks,
-        loadingTreks,       
+        loadingTreks,
         filters,
         filterOptions,
         selectedTrek,
         fetchTreks,
         bookingTrekLoading,
         bookTrek,
-
     }
 })

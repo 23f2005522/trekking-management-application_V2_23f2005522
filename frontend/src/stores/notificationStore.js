@@ -5,8 +5,13 @@ import { useTrekHistoryStore } from "@/stores/trekker/trekHistoryStore"
 const SSE_BASE = "http://127.0.0.1:5000/stream"
 
 export const useNotificationStore = defineStore("notifications", () => {
+
+    // adminView, TrekkerView (layout SSE connect on mount)
+    // logout.js (disconnect on logout)
+    // state
     let eventSource = null
 
+    // actions
     function connectSSE() {
         const userId = localStorage.getItem("user_id")
         const token = localStorage.getItem("access_token")
@@ -23,7 +28,7 @@ export const useNotificationStore = defineStore("notifications", () => {
                 const flashStore = useFlashStore()
                 flashStore.show(data.message || "New notification", "success")
 
-                // When export finishes, refresh Export History table (no polling needed)
+                // TrekkerHistory — refresh export jobs when Celery export completes
                 if (data.type === "export") {
                     const historyStore = useTrekHistoryStore()
                     historyStore.fetchExportJobs()

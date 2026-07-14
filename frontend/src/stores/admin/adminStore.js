@@ -4,13 +4,13 @@ import axiosInstance from "../../utils/axioUtil";
 
 export const useAdminStore = defineStore("Admin", () => {
 
+    // adminDashboardView
+    // state
     const admin = ref(null);
     const dashboardData = ref(null);
     const loadingAdmin = ref(false);
 
-    const report = ref(null);
-    const loadingReport = ref(false);
-
+    // actions
     const fetchAdminData = async () => {
         if (admin.value && dashboardData.value) return;
 
@@ -28,8 +28,14 @@ export const useAdminStore = defineStore("Admin", () => {
         } finally {
             loadingAdmin.value = false;
         }
-    }
+    };
 
+    // adminReport
+    // state
+    const report = ref(null);
+    const loadingReport = ref(false);
+
+    // actions
     async function fetchReport() {
         loadingReport.value = true;
 
@@ -44,14 +50,6 @@ export const useAdminStore = defineStore("Admin", () => {
         }
     }
 
-    function resetAdminData() {
-        admin.value = null;
-        dashboardData.value = null;
-        loadingAdmin.value = false;
-        report.value = null;
-        loadingReport.value = false;
-    }
-
     return {
         admin,
         loadingAdmin,
@@ -61,7 +59,5 @@ export const useAdminStore = defineStore("Admin", () => {
 
         fetchAdminData,
         fetchReport,
-        resetAdminData,
-    }
-
-})
+    };
+});

@@ -4,20 +4,13 @@ import axiosInstance from "../../utils/axioUtil";
 
 export const userStaffStore = defineStore("staffDashboard", () => {
 
+    // staffDashboardView
+    // state
     const staffProfile = ref(null);
     const assignedTreks = ref([]);
     const loadingDashboard = ref(false);
-    const loadingProfile = ref(false);
 
-    const managingTrek = ref(null);
-    const loadingManagingTrek = ref(false);
-    const savingTrekStatus = ref(false);
-    const updatingSlotsId = ref(null);
-
-    const participantsTrek = ref(null);
-    const participants = ref([]);
-    const loadingParticipants = ref(false);
-
+    // getters
     const dashboardStats = computed(() => {
         const totalAssignedTreks = assignedTreks.value.length;
         const activeAssignedTreks = assignedTreks.value.filter(
@@ -35,10 +28,12 @@ export const userStaffStore = defineStore("staffDashboard", () => {
         };
     });
 
-    async function fetchDashboardData() {
-        if (loadingDashboard.value) return;
-
-        loadingDashboard.value = true;
+    // actions
+    async function fetchDashboardData(silent = false) {
+        if (!silent) {
+            if (loadingDashboard.value) return;
+            loadingDashboard.value = true;
+        }
 
         try {
             const { data } = await axiosInstance.get("/staff/dashboard");
@@ -47,10 +42,54 @@ export const userStaffStore = defineStore("staffDashboard", () => {
             assignedTreks.value = data.assigned_treks ?? [];
             return data;
         } finally {
-            loadingDashboard.value = false;
+            if (!silent) {
+                loadingDashboard.value = false;
+            }
         }
     }
 
+    // StaffManageTreks
+    // state
+    const loadingTreks = ref(false);
+    const updatingSlotsId = ref(null);
+
+    // getters — uses assignedTreks (above)
+
+    // actions
+    async function fetchAssignedTreks() {
+        if (loadingTreks.value) return;
+
+        loadingTreks.value = true;
+
+        try {
+            const { data } = await axiosInstance.get("/staff/treks");
+            assignedTreks.value = data.assigned_treks ?? [];
+            return data;
+        } finally {
+            loadingTreks.value = false;
+        }
+    }
+
+    async function updateTrekSlots(trekId, availableSlots) {
+        updatingSlotsId.value = trekId;
+
+        try {
+            const { data } = await axiosInstance.post(`/staff/treks/${trekId}/slots`, {
+                available_slots: availableSlots,
+            });
+
+            await fetchAssignedTreks();
+            return data;
+        } finally {
+            updatingSlotsId.value = null;
+        }
+    }
+
+    // StaffProfile
+    // state
+    const loadingProfile = ref(false);
+
+    // actions
     async function fetchProfile() {
         loadingProfile.value = true;
 
@@ -63,6 +102,13 @@ export const userStaffStore = defineStore("staffDashboard", () => {
         }
     }
 
+    // staffManageTrekModal, staffDashboardView
+    // state
+    const managingTrek = ref(null);
+    const loadingManagingTrek = ref(false);
+    const savingTrekStatus = ref(false);
+
+    // actions
     async function fetchTrekById(trekId) {
         if (!trekId) {
             managingTrek.value = null;
@@ -93,28 +139,20 @@ export const userStaffStore = defineStore("staffDashboard", () => {
             });
 
             managingTrek.value = data.trek;
-            await fetchDashboardData();
+            await fetchDashboardData(true);
             return data;
         } finally {
             savingTrekStatus.value = false;
         }
     }
 
-    async function updateTrekSlots(trekId, availableSlots) {
-        updatingSlotsId.value = trekId;
+    // StaffParticipants
+    // state
+    const participantsTrek = ref(null);
+    const participants = ref([]);
+    const loadingParticipants = ref(false);
 
-        try {
-            const { data } = await axiosInstance.post(`/staff/treks/${trekId}/slots`, {
-                available_slots: availableSlots,
-            });
-
-            await fetchDashboardData();
-            return data;
-        } finally {
-            updatingSlotsId.value = null;
-        }
-    }
-
+    // actions
     async function fetchParticipants(trekId) {
         if (!trekId) {
             participantsTrek.value = null;
@@ -151,27 +189,15 @@ export const userStaffStore = defineStore("staffDashboard", () => {
         return data;
     }
 
-    function resetDashboardData() {
-        staffProfile.value = null;
-        assignedTreks.value = [];
-        loadingDashboard.value = false;
-        loadingProfile.value = false;
-        managingTrek.value = null;
-        loadingManagingTrek.value = false;
-        savingTrekStatus.value = false;
-        updatingSlotsId.value = null;
-        participantsTrek.value = null;
-        participants.value = [];
-        loadingParticipants.value = false;
-    }
-
     return {
         staffProfile,
         assignedTreks,
         loadingDashboard,
+        loadingTreks,
         loadingProfile,
         dashboardStats,
         fetchDashboardData,
+        fetchAssignedTreks,
         fetchProfile,
 
         managingTrek,
@@ -187,7 +213,5 @@ export const userStaffStore = defineStore("staffDashboard", () => {
         loadingParticipants,
         fetchParticipants,
         toggleParticipantPayment,
-
-        resetDashboardData,
     };
 });

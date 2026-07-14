@@ -4,10 +4,13 @@ import axiosInstance from "@/utils/axioUtil";
 
 export const useBookingStore = defineStore("Booking", () => {
 
+    // manageBookings
+    // state
     const allBookings = ref([]);
     const loadingBookings = ref(false);
     const bookingSearchQuery = ref("");
 
+    // getters
     const filteredBookings = computed(() => {
         const query = bookingSearchQuery.value.trim().toLowerCase();
         if (!query) return allBookings.value;
@@ -24,6 +27,7 @@ export const useBookingStore = defineStore("Booking", () => {
         });
     });
 
+    // actions
     async function fetchAllBookings() {
         loadingBookings.value = true;
         try {

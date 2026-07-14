@@ -33,20 +33,6 @@ def _publish_sse(user_id, data):
     sse.publish(data=data, type="notification", channel=channel)
 
 
-
-
-# Ping task to check if Celery is alive
-@celery_app.task
-def ping_task():
-
-    print("Celery is alive!")
-
-    return "pong"
-
-
-
-
-
 def _month_range(reference=None):
 
     """Return (month_start, month_end, label) for the current calendar month."""
@@ -66,9 +52,6 @@ def _month_range(reference=None):
     label = month_start.strftime("%B %Y")
 
     return month_start, month_end, label
-
-
-
 
 
 def _build_monthly_report_data():
@@ -202,8 +185,6 @@ def _build_monthly_report_data():
     }
 
 
-
-
 def _format_monthly_report_summary(report_data):
     """Build a plain-text summary of the monthly report for report_logs storage."""
     lines = [
@@ -284,6 +265,7 @@ def send_daily_trek_reminder():
     email_count = 0
     notified_ids = []
 
+    # send email and save notification to the database
     for trekker in trekkers:
 
         html_body = render_template(
@@ -345,6 +327,7 @@ def send_daily_trek_reminder():
 
     db.session.commit()
 
+    # send sse notification to trekkers if they are online on the website
     parts = []
     if approved_treks:
         parts.append(f"{len(approved_treks)} trek(s) on the way")
@@ -383,11 +366,11 @@ def send_monthly_admin_report():
         return "No admin user — report not sent"
 
 
-
+    # generting the html body for the email
     html_body = render_template("monthly_report.html", report_data=report_data)
 
 
-
+    # sending the email to the admin
     send_email(
 
         admin.email,
@@ -401,7 +384,7 @@ def send_monthly_admin_report():
     )
 
 
-
+    # saving the report to the database
     report_log = ReportLogsModel(
 
         type_of_report=ReportType.MONTHLY,
@@ -414,7 +397,7 @@ def send_monthly_admin_report():
 
     db.session.add(report_log)
 
-
+    # saving the notification to the database
 
     notification = NotificationModel(
 
@@ -440,16 +423,20 @@ def send_monthly_admin_report():
 
     db.session.commit()
 
+    # building the message for the sse notification
     report_message = (
         f"Monthly report for {report_data['month_label']}: "
         f"{report_data['treks_conducted']} trek(s) conducted, "
         f"{report_data['participants']} participant(s)."
-    )
+        f"Monthly report sent to your email"
+    ) 
+    # sending the sse notification to the admin
     _publish_sse(
         admin.id,
         {"message": report_message, "type": "report"},
     )
 
+    # printing the message to the console
     print(
         f"Monthly report sent to {admin.email} — "
         f"{report_data['treks_conducted']} treks, {report_data['participants']} participants"

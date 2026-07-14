@@ -4,12 +4,12 @@ import axiosInstance from "@/utils/axioUtil"
 
 export const useTrekHistoryStore = defineStore("trekHistory", () => {
 
+    // TrekkerHistory (history table)
+    // state
     const history = ref([])
     const loadingHistory = ref(false)
 
-
-
-
+    // actions
     async function fetchHistory() {
         loadingHistory.value = true
 
@@ -21,13 +21,14 @@ export const useTrekHistoryStore = defineStore("trekHistory", () => {
             loadingHistory.value = false
         }
     }
-    
 
-    // Export Jobs State Management
+    // TrekkerHistory (CSV export jobs)
+    // state
     const exportJobs = ref([])
     const exporting = ref(false)
-    const EXPORT_COOLDOWN_MS = 5000 // keep button disabled 5s to prevent spam clicks
+    const EXPORT_COOLDOWN_MS = 5000
 
+    // actions
     async function fetchExportJobs() {
         const { data } = await axiosInstance.get("/trekker/export-jobs")
         exportJobs.value = data.export_jobs || []
@@ -80,5 +81,4 @@ export const useTrekHistoryStore = defineStore("trekHistory", () => {
         startExport,
         downloadExport,
     }
-
 })

@@ -1,5 +1,6 @@
 <script setup>
 import { onMounted, ref } from 'vue'
+import Loader from '@/components/Loader.vue'
 import StaffManageTrekModal from '@/components/staffManageTrekModal.vue'
 import { userStaffStore } from '@/stores/staff/staffStore'
 import { useFlashStore } from '@/stores/flashStore'
@@ -70,6 +71,11 @@ onMounted(async () => {
       Welcome back! {{ staffStore.staffProfile?.username }} Here's an overview of your assigned treks.
     </p>
 
+    <div v-if="staffStore.loadingDashboard" class="d-flex justify-content-center align-items-center py-5">
+      <Loader />
+    </div>
+
+    <template v-else>
     <div class="row g-4 mt-2">
           <!-- Assigned Treks -->
           <div class="col-md-6 col-lg-4">
@@ -206,6 +212,8 @@ onMounted(async () => {
           </div>
         </div>
 
-    <StaffManageTrekModal :trekId="selectedTrekId" @updated="staffStore.fetchDashboardData()" />
+    </template>
+
+    <StaffManageTrekModal :trekId="selectedTrekId" />
   </div>
 </template>

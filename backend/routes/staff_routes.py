@@ -209,7 +209,12 @@ def get_trek_participants(trek_id):
         return jsonify({"message": "Trek not assigned to staff"}), 404
 
     participants = []
+    active_booking_statuses = (BookingStatus.BOOKED, BookingStatus.COMPLETED)
+
     for booking in sorted(trek.bookings, key=lambda item: item.booking_date):
+        if booking.status not in active_booking_statuses:
+            continue
+
         participants.append(
             {
                 "id": booking.id,
@@ -369,18 +374,24 @@ def update_assigned_trek_slots(trek_id):
     except (TypeError, ValueError):
         return jsonify({"message": "Available slots must be a valid number."}), 400
 
+    booked_count = sum(
+        1 for booking in trek.bookings if booking.status == BookingStatus.BOOKED
+    )
+    max_available_slots = trek.total_slots - booked_count
+
     if new_available_slots < 0:
         return jsonify({"message": "Available slots cannot be negative."}), 400
 
     if new_available_slots > trek.total_slots:
         return jsonify({"message": "Available slots cannot exceed total slots."}), 400
 
-    if new_available_slots > trek.total_slots - sum(
-        1 for booking in trek.bookings if booking.status == BookingStatus.BOOKED
-    ):
+    if new_available_slots > max_available_slots:
         return jsonify(
             {
-                "message": "Available slots cannot exceed the number of unbooked slots."
+                "message": (
+                    f"Only {max_available_slots} available slot(s) allowed "
+                    f"({booked_count} already booked out of {trek.total_slots} total)."
+                )
             }
         ), 400
 

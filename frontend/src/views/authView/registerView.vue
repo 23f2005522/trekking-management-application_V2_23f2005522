@@ -12,7 +12,6 @@ const formData = reactive({
   phone: '',
   password: '',
   confirmPassword: '',
-  role: 'trekker',
 })
 
 const handelRegister = async () => {

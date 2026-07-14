@@ -4,12 +4,15 @@ import axiosInstance from "@/utils/axioUtil";
 
 export const useTrekkerStore = defineStore("trekker", () => {
 
+    // TrekkerDashboard
+    // state
     const trekkerProfile = ref(null);
     const dashboardStats = ref(null);
     const recentOpenTreks = ref([]);
     const recentBookings = ref([]);
     const loadingDashboard = ref(false);
 
+    // actions
     async function fetchDashboardData() {
         loadingDashboard.value = true;
 
@@ -26,14 +29,6 @@ export const useTrekkerStore = defineStore("trekker", () => {
         }
     }
 
-    function resetDashboardData() {
-        trekkerProfile.value = null;
-        dashboardStats.value = null;
-        recentOpenTreks.value = [];
-        recentBookings.value = [];
-        loadingDashboard.value = false;
-    }
-
     return {
         trekkerProfile,
         dashboardStats,
@@ -41,6 +36,5 @@ export const useTrekkerStore = defineStore("trekker", () => {
         recentBookings,
         loadingDashboard,
         fetchDashboardData,
-        resetDashboardData,
     };
 });

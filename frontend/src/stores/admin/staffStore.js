@@ -4,14 +4,13 @@ import axiosInstance from "@/utils/axioUtil";
 
 export const useStaffStore = defineStore("adminStaff", () => {
 
+    // manageStaff
+    // state
     const loadingStaffs = ref(false);
     const allStaffs = ref([]);
     const staffsearchQuery = ref("");
 
-    const selectedStaffId = ref(null);
-    const selectedStatus = ref("");
-    const reason = ref("");
-
+    // getters
     const filteredStaffs = computed(() => {
         const query = staffsearchQuery.value.trim().toLowerCase();
         if (!query) return allStaffs.value;
@@ -26,42 +25,7 @@ export const useStaffStore = defineStore("adminStaff", () => {
         });
     });
 
-    const approvedStaffs = computed(() => {
-        return allStaffs.value.filter((staff) => staff.status === "approved");
-    });
-
-    const pendingStaffs = computed(() => {
-        return allStaffs.value.filter((staff) => staff.status === "pending");
-    });
-
-    const rejectedStaffs = computed(() => {
-        return allStaffs.value.filter((staff) => staff.status === "rejected");
-    });
-
-    const blacklistedStaffs = computed(() => {
-        return allStaffs.value.filter((staff) => staff.status === "blacklisted");
-    });
-
-    const selectedStaff = computed(() => {
-        return allStaffs.value.find(
-            staff => staff.user_id === selectedStaffId.value
-        ) || null;
-    })
-
-    watch(
-        selectedStaff,
-        (newVal) => {
-            if (!newVal) {
-                selectedStatus.value = "";
-                reason.value = "";
-            } else {
-                selectedStatus.value = newVal.status;
-                reason.value = newVal.blacklisted_reason || "";
-            }
-        },
-        { immediate: true },
-    );
-
+    // actions
     async function allFetchStaffs() {
         loadingStaffs.value = true;
         try {
@@ -77,6 +41,34 @@ export const useStaffStore = defineStore("adminStaff", () => {
         return allFetchStaffs();
     }
 
+    // managaStaffModal
+    // state
+    const selectedStaffId = ref(null);
+    const selectedStatus = ref("");
+    const reason = ref("");
+
+    // getters
+    const selectedStaff = computed(() => {
+        return allStaffs.value.find(
+            (staff) => staff.user_id === selectedStaffId.value
+        ) || null;
+    });
+
+    watch(
+        selectedStaff,
+        (newVal) => {
+            if (!newVal) {
+                selectedStatus.value = "";
+                reason.value = "";
+            } else {
+                selectedStatus.value = newVal.status;
+                reason.value = newVal.blacklisted_reason || "";
+            }
+        },
+        { immediate: true },
+    );
+
+    // actions
     async function handelEditStaff() {
         const response = await axiosInstance.post(
             `/admin/staffs/${selectedStaffId.value}/${selectedStatus.value}`,
@@ -86,11 +78,25 @@ export const useStaffStore = defineStore("adminStaff", () => {
         return response.data;
     }
 
+    // createStaffModal
+    // state — uses allStaffs (above)
+
+    // actions
     async function createStaff(staffData) {
         const response = await axiosInstance.post("/admin/create_staff", staffData);
         await allFetchStaffs();
         return response.data;
     }
+
+    // addTrekModal, editTrekModal (staff dropdown)
+    // state — uses allStaffs (above)
+
+    // getters
+    const approvedStaffs = computed(() => {
+        return allStaffs.value.filter((staff) => staff.status === "approved");
+    });
+
+    // actions — fetchStaffs (above)
 
     return {
         allStaffs,
@@ -104,14 +110,10 @@ export const useStaffStore = defineStore("adminStaff", () => {
 
         filteredStaffs,
         approvedStaffs,
-        rejectedStaffs,
-        pendingStaffs,
-        blacklistedStaffs,
 
         allFetchStaffs,
         fetchStaffs,
         handelEditStaff,
-        createStaff
-    }
-
-})
+        createStaff,
+    };
+});

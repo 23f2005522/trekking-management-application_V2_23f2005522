@@ -3,6 +3,7 @@ import { reactive } from "vue";
 
 export const useFlashStore = defineStore("flash", () => {
 
+    // flashMessage (App.vue) — used across all views/components for toast alerts
     // state
     const state = reactive({
         message: "",
@@ -13,7 +14,6 @@ export const useFlashStore = defineStore("flash", () => {
 
     // actions
     function show(message, type = "success", duration = 3000) {
-
         state.message = message;
         state.type = type;
 
@@ -30,7 +30,6 @@ export const useFlashStore = defineStore("flash", () => {
         state.message = "";
         state.type = "success";
     }
-
 
     return {
         state,

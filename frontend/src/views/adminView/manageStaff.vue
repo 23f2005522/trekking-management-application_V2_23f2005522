@@ -1,5 +1,6 @@
 <script setup>
 import { onMounted } from 'vue'
+import Loader from '@/components/Loader.vue'
 import { useStaffStore } from '@/stores/admin/staffStore'
 import { useFlashStore } from '@/stores/flashStore'
 import ManagaStaffModal from '@/components/managaStaffModal.vue'
@@ -10,7 +11,7 @@ const flashStore = useFlashStore()
 
 onMounted(async () => {
   try {
-    await (staffStore.allFetchStaffs?.() ?? staffStore.fetchStaffs?.())
+    await staffStore.fetchStaffs()
   } catch (error) {
     flashStore.show(error.response?.data?.message || 'Failed to fetch staff.', 'error')
   }
@@ -87,10 +88,11 @@ onMounted(async () => {
 
       <!-- all staffs -->
       <div class="card shadow-sm border-0">
-        <div
-          v-if="staffStore.loadingStaffs === false"
-          class="d-flex justify-content-center align-items-center p-5"
-        >
+        <div v-if="staffStore.loadingStaffs" class="d-flex justify-content-center align-items-center p-5">
+          <Loader />
+        </div>
+
+        <div v-else class="table-responsive p-3">
           <table class="table table-hover mb-0">
             <thead class="bg-success text-white">
               <tr>
@@ -118,6 +120,7 @@ onMounted(async () => {
                       'badge bg-success': staff.status === 'approved',
                       'badge bg-warning': staff.status === 'pending',
                       'badge bg-danger': staff.status === 'rejected',
+                      'badge bg-dark': staff.status === 'blacklisted',
                       'p-2': true,
                     }"
                   >
@@ -152,14 +155,11 @@ onMounted(async () => {
               </tr>
 
               <!-- No Staffs Found -->
-              <tr v-if="(staffStore.filteredStaffs?.length ?? 0) === 0">
-                <td colspan="5" class="text-center text-muted py-4">No staffs found.</td>
+              <tr v-if="staffStore.filteredStaffs.length === 0">
+                <td colspan="8" class="text-center text-muted py-4">No staffs found.</td>
               </tr>
             </tbody>
           </table>
-        </div>
-        <div v-else class="d-flex justify-content-center align-items-center p-5">
-          Loading staffs...
         </div>
       </div>
     </div>
@@ -174,14 +174,6 @@ onMounted(async () => {
 .table td,
 .table th {
   vertical-align: middle;
-}
-
-.nav-tabs .nav-link {
-  color: #198754;
-}
-
-.nav-tabs .nav-link.active {
-  font-weight: 600;
 }
 
 .badge {

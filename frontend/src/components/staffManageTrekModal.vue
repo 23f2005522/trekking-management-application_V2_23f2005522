@@ -1,6 +1,7 @@
 <script setup>
-import { computed, ref } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { storeToRefs } from 'pinia'
+import Loader from '@/components/Loader.vue'
 import { userStaffStore } from '@/stores/staff/staffStore'
 import { useFlashStore } from '@/stores/flashStore'
 
@@ -23,11 +24,11 @@ const { managingTrek, loadingManagingTrek, savingTrekStatus } = storeToRefs(staf
 
 const selectedStatus = ref('open')
 
-const trek = computed(() => managingTrek.value)
-const loadingTrek = computed(() => loadingManagingTrek.value)
-const savingStatus = computed(() => savingTrekStatus.value)
+const canMarkCompleted = computed(() => managingTrek.value?.status === 'ongoing')
 
-const canMarkCompleted = computed(() => trek.value?.status === 'ongoing')
+watch(managingTrek, (trek) => {
+  if (trek) selectedStatus.value = trek.status || 'open'
+})
 
 const getStatusBadgeClass = (status) => {
   const normalizedStatus = String(status || '').toLowerCase()
@@ -42,11 +43,6 @@ const getStatusBadgeClass = (status) => {
   return statusClassMap[normalizedStatus] || 'bg-secondary'
 }
 
-// sync dropdown when parent loads a new trek
-const syncStatus = () => {
-  selectedStatus.value = trek.value?.status || 'open'
-}
-
 const saveTrekStatus = async () => {
   if (!props.trekId) return
 
@@ -59,8 +55,6 @@ const saveTrekStatus = async () => {
     flashStore.show(error.response?.data?.message || 'Failed to update trek status.', 'error')
   }
 }
-
-defineExpose({ syncStatus })
 </script>
 
 <template>
@@ -75,7 +69,7 @@ defineExpose({ syncStatus })
           <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
         </div>
 
-        <div class="modal-body p-4" v-if="trek && !loadingTrek">
+        <div class="modal-body p-4" v-if="managingTrek && !loadingManagingTrek">
           <div class="row g-4">
             <div class="col-md-7">
               <div class="detail-card mb-3">
@@ -85,29 +79,29 @@ defineExpose({ syncStatus })
                     {{ selectedStatus }}
                   </span>
                 </div>
-                <div class="detail-value">{{ trek.name }}</div>
+                <div class="detail-value">{{ managingTrek.name }}</div>
               </div>
               <div class="detail-card mb-3">
                 <div class="detail-label">Location</div>
-                <div class="detail-value">{{ trek.location }}</div>
+                <div class="detail-value">{{ managingTrek.location }}</div>
               </div>
               <div class="detail-card mb-3">
                 <div class="detail-label">Difficulty</div>
-                <div class="detail-value text-capitalize">{{ trek.difficulty }}</div>
+                <div class="detail-value text-capitalize">{{ managingTrek.difficulty }}</div>
               </div>
             </div>
             <div class="col-md-5">
               <div class="detail-card mb-3">
                 <div class="detail-label">Duration</div>
-                <div class="detail-value">{{ trek.duration }} Days</div>
+                <div class="detail-value">{{ managingTrek.duration }} Days</div>
               </div>
               <div class="detail-card mb-3">
                 <div class="detail-label">Start Date</div>
-                <div class="detail-value">{{ trek.starting_date }}</div>
+                <div class="detail-value">{{ managingTrek.starting_date }}</div>
               </div>
               <div class="detail-card mb-3">
                 <div class="detail-label">End Date</div>
-                <div class="detail-value">{{ trek.ending_date }}</div>
+                <div class="detail-value">{{ managingTrek.ending_date }}</div>
               </div>
             </div>
           </div>
@@ -115,15 +109,15 @@ defineExpose({ syncStatus })
           <div class="stats-strip mt-4">
             <div class="stat-box">
               <span class="stat-label">Total Slots</span>
-              <span class="stat-value text-primary">{{ trek.total_slots }}</span>
+              <span class="stat-value text-primary">{{ managingTrek.total_slots }}</span>
             </div>
             <div class="stat-box">
               <span class="stat-label">Available Slots</span>
-              <span class="stat-value text-success">{{ trek.available_slots }}</span>
+              <span class="stat-value text-success">{{ managingTrek.available_slots }}</span>
             </div>
             <div class="stat-box">
               <span class="stat-label">Booked</span>
-              <span class="stat-value text-danger">{{ trek.total_participants }}</span>
+              <span class="stat-value text-danger">{{ managingTrek.total_participants }}</span>
             </div>
           </div>
 
@@ -141,13 +135,15 @@ defineExpose({ syncStatus })
           </div>
         </div>
 
-        <div v-else-if="loadingTrek" class="modal-body text-center py-5">Loading trek details...</div>
+        <div v-else-if="loadingManagingTrek" class="modal-body text-center py-5">
+          <Loader />
+        </div>
         <div v-else class="modal-body text-center py-5 text-muted">No trek loaded.</div>
 
         <div class="modal-footer">
           <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-          <button type="button" class="btn btn-success" :disabled="savingStatus" @click="saveTrekStatus">
-            {{ savingStatus ? 'Saving...' : 'Save Changes' }}
+          <button type="button" class="btn btn-success" :disabled="savingTrekStatus" @click="saveTrekStatus">
+            {{ savingTrekStatus ? 'Saving...' : 'Save Changes' }}
           </button>
         </div>
       </div>
