@@ -5,6 +5,7 @@ werkzeug
 flask_cors
 flask_jwt_extended
 flask-caching
+python-dotenv
 
 redis>=4.5,<5.0.0
 celery

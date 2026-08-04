@@ -470,13 +470,13 @@ def export_trekker_history_csv(export_job_id):
         )
 
         os.makedirs(EXPORTS_DIR, exist_ok=True)
-        timestamp = datetime.utcnow().strftime("%Y%m%d_%H%M%S")
-        filename = f"history_user_{job.user_id}_{timestamp}.csv"
-        file_path = os.path.join(EXPORTS_DIR, filename)
+        timestamp = datetime.utcnow().strftime("%Y%m%d_%H%M%S") # timestamp for the filename
+        filename = f"history_user_{job.user_id}_{timestamp}.csv" # filename for the CSV file
+        file_path = os.path.join(EXPORTS_DIR, filename)  # path to the CSV file
 
-        with open(file_path, "w", newline="", encoding="utf-8") as csv_file:
-            writer = csv.writer(csv_file)
-            header = [
+        with open(file_path, "w", newline="", encoding="utf-8") as csv_file: # open the CSV file for writing (if file does not exist, it will be created)
+            writer = csv.writer(csv_file) # create a writer object (csv.writer is a class that writes to a CSV file)
+            header = [ # header for the CSV file
                 "Trek Name",
                 "Location",
                 "Difficulty",
@@ -535,7 +535,172 @@ def export_trekker_history_csv(export_job_id):
         db.session.rollback()
         job.status = ExportStatus.FAILED
         db.session.commit()
+
+        fail_message = "Your trekking history CSV export failed. Please try again."
+        notification = NotificationModel(
+            user_id=job.user_id,
+            message_text=fail_message,
+            type_of_notification=NotificationStatus.EXPORT,
+            status=NotificationStatus.EXPORT,
+        )
+        db.session.add(notification)
+        db.session.commit()
+
+        _publish_sse(
+            job.user_id,
+            {
+                "message": fail_message,
+                "type": "export",
+                "action": "export_failed",
+                "job_id": job.id,
+            },
+        )
+
         print(f"Export job {export_job_id} failed: {e}")
         return f"Export failed: {e}"
+
+
+# Export all bookings CSV for admin
+@celery_app.task
+def export_admin_bookings_csv(export_job_id):
+    job = ExportJobModel.query.get(export_job_id)
+
+    if not job:
+        print(f"Admin export job {export_job_id} not found")
+        return "Export job not found"
+
+    job.status = ExportStatus.PROCESSING
+    db.session.commit()
+
+    try:
+        bookings = (
+            BookingModel.query.order_by(BookingModel.booking_date.desc()).all()
+        )
+
+        os.makedirs(EXPORTS_DIR, exist_ok=True)
+        timestamp = datetime.utcnow().strftime("%Y%m%d_%H%M%S")
+        filename = f"admin_bookings_{timestamp}.csv"
+        file_path = os.path.join(EXPORTS_DIR, filename)
+
+        with open(file_path, "w", newline="", encoding="utf-8") as csv_file:
+            writer = csv.writer(csv_file)
+            writer.writerow([
+                "Booking ID",
+                "Trekker Name",
+                "Trekker Email",
+                "Trek Name",
+                "Booking Date",
+                "Booking Status",
+                "Payment Status",
+                "Amount Paid",
+                "Cancel Date",
+            ])
+
+            for booking in bookings:
+                trek = booking.trek
+                writer.writerow([
+                    booking.id,
+                    booking.user.username if booking.user else "",
+                    booking.user.email if booking.user else "",
+                    trek.name if trek else "",
+                    booking.booking_date.strftime("%Y-%m-%d") if booking.booking_date else "",
+                    booking.status.value if booking.status else "",
+                    booking.payment_status.value if booking.payment_status else "",
+                    float(booking.amount_paid) if booking.amount_paid is not None else 0.0,
+                    booking.booking_cancel_date.strftime("%Y-%m-%d")
+                    if booking.booking_cancel_date
+                    else "",
+                ])
+
+        job.status = ExportStatus.COMPLETED
+        job.file_path = file_path
+
+        notification = NotificationModel(
+            user_id=job.user_id,
+            message_text="Admin bookings CSV export is ready to download.",
+            type_of_notification=NotificationStatus.EXPORT,
+            status=NotificationStatus.EXPORT,
+        )
+        db.session.add(notification)
+        db.session.commit()
+
+        _publish_sse(
+            job.user_id,
+            {
+                "message": "Admin bookings CSV export is ready to download.",
+                "type": "export",
+                "action": "export",
+                "job_id": job.id,
+            },
+        )
+
+        print(f"Admin bookings export completed: {filename}")
+        return f"Admin export completed: {filename}"
+
+    except Exception as e:
+        db.session.rollback()
+        job.status = ExportStatus.FAILED
+        db.session.commit()
+
+        fail_message = "Admin bookings CSV export failed. Please try again."
+        notification = NotificationModel(
+            user_id=job.user_id,
+            message_text=fail_message,
+            type_of_notification=NotificationStatus.EXPORT,
+            status=NotificationStatus.EXPORT,
+        )
+        db.session.add(notification)
+        db.session.commit()
+
+        _publish_sse(
+            job.user_id,
+            {
+                "message": fail_message,
+                "type": "export",
+                "action": "export_failed",
+                "job_id": job.id,
+            },
+        )
+
+        print(f"Admin export job {export_job_id} failed: {e}")
+        return f"Admin export failed: {e}"
+
+
+@celery_app.task
+def send_booking_confirmation_email(booking_id):
+    booking = BookingModel.query.get(booking_id)
+    if not booking:
+        print(f"Booking {booking_id} not found for confirmation email")
+        return "Booking not found"
+
+    trekker = booking.user
+    trek = booking.trek
+    if not trekker or not trek:
+        print(f"Missing trekker/trek for booking {booking_id}")
+        return "Missing data"
+
+    try:
+        html_body = render_template(
+            "booking_confirmation.html",
+            trekker_name=trekker.username,
+            trek_name=trek.name,
+            location=trek.location,
+            starting_at=trek.starting_at.strftime("%Y-%m-%d") if trek.starting_at else "-",
+            ending_at=trek.ending_at.strftime("%Y-%m-%d") if trek.ending_at else "-",
+            booking_id=booking.id,
+            price=int(trek.price) if trek.price else 0,
+            payment_status=booking.payment_status.value if booking.payment_status else "pending",
+        )
+        send_email(
+            trekker.email,
+            f"TrekMaster — Booking confirmed for '{trek.name}'",
+            html_body,
+            content_type="html",
+        )
+        print(f"Booking confirmation email sent to {trekker.email}")
+        return f"Confirmation email sent to {trekker.email}"
+    except Exception as exc:
+        print(f"Booking confirmation email failed for booking {booking_id}: {exc}")
+        return f"Email failed: {exc}"
 
 

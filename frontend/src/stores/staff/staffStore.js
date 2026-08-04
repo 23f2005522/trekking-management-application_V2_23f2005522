@@ -8,6 +8,7 @@ export const userStaffStore = defineStore("staffDashboard", () => {
     // state
     const staffProfile = ref(null);
     const assignedTreks = ref([]);
+    const upcomingTreks = ref([]);
     const loadingDashboard = ref(false);
 
     // getters
@@ -25,6 +26,7 @@ export const userStaffStore = defineStore("staffDashboard", () => {
             totalAssignedTreks,
             activeAssignedTreks,
             totalParticipants,
+            upcomingTreksCount: upcomingTreks.value.length,
         };
     });
 
@@ -40,6 +42,7 @@ export const userStaffStore = defineStore("staffDashboard", () => {
 
             staffProfile.value = data.staff_profile;
             assignedTreks.value = data.assigned_treks ?? [];
+            upcomingTreks.value = data.upcoming_treks ?? [];
             return data;
         } finally {
             if (!silent) {
@@ -56,18 +59,49 @@ export const userStaffStore = defineStore("staffDashboard", () => {
     // getters — uses assignedTreks (above)
 
     // actions
-    async function fetchAssignedTreks() {
-        if (loadingTreks.value) return;
+    async function fetchAssignedTreks(silent = false) {
+        if (!silent && loadingTreks.value) return;
 
-        loadingTreks.value = true;
+        if (!silent) {
+            loadingTreks.value = true;
+        }
 
         try {
             const { data } = await axiosInstance.get("/staff/treks");
             assignedTreks.value = data.assigned_treks ?? [];
             return data;
         } finally {
-            loadingTreks.value = false;
+            if (!silent) {
+                loadingTreks.value = false;
+            }
         }
+    }
+
+    function clearStaleStaffViews() {
+        if (managingTrek.value) {
+            const stillAssigned = assignedTreks.value.some(
+                (trek) => trek.id === managingTrek.value.id
+            );
+            if (!stillAssigned) {
+                managingTrek.value = null;
+            }
+        }
+
+        if (participantsTrek.value) {
+            const stillAssigned = assignedTreks.value.some(
+                (trek) => trek.id === participantsTrek.value.id
+            );
+            if (!stillAssigned) {
+                participantsTrek.value = null;
+                participants.value = [];
+            }
+        }
+    }
+
+    async function refreshAssignedData() {
+        await fetchDashboardData(true);
+        await fetchAssignedTreks(true);
+        clearStaleStaffViews();
     }
 
     async function updateTrekSlots(trekId, availableSlots) {
@@ -189,15 +223,25 @@ export const userStaffStore = defineStore("staffDashboard", () => {
         return data;
     }
 
+    async function markAllParticipantsPaid(trekId) {
+        const { data } = await axiosInstance.post(
+            `/staff/treks/${trekId}/participants/mark-all-paid`
+        );
+        await fetchParticipants(trekId);
+        return data;
+    }
+
     return {
         staffProfile,
         assignedTreks,
+        upcomingTreks,
         loadingDashboard,
         loadingTreks,
         loadingProfile,
         dashboardStats,
         fetchDashboardData,
         fetchAssignedTreks,
+        refreshAssignedData,
         fetchProfile,
 
         managingTrek,
@@ -213,5 +257,6 @@ export const userStaffStore = defineStore("staffDashboard", () => {
         loadingParticipants,
         fetchParticipants,
         toggleParticipantPayment,
+        markAllParticipantsPaid,
     };
 });

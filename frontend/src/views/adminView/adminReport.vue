@@ -1,20 +1,126 @@
 <script setup>
-import { onMounted } from 'vue'
+import { onMounted, onBeforeUnmount, watch, ref, nextTick } from 'vue'
 import { useAdminStore } from '@/stores/admin/adminStore'
 import { useFlashStore } from '@/stores/flashStore'
 import { storeToRefs } from 'pinia'
 import Loader from '@/components/Loader.vue'
+import {
+  Chart,
+  BarController,
+  BarElement,
+  CategoryScale,
+  LinearScale,
+  DoughnutController,
+  ArcElement,
+  Tooltip,
+  Legend,
+} from 'chart.js'
+
+Chart.register(
+  BarController,
+  BarElement,
+  CategoryScale,
+  LinearScale,
+  DoughnutController,
+  ArcElement,
+  Tooltip,
+  Legend
+)
 
 const adminStore = useAdminStore()
 const flashStore = useFlashStore()
 const { report, loadingReport } = storeToRefs(adminStore)
 
+const bookingsChartRef = ref(null)
+const treksChartRef = ref(null)
+let bookingsChart = null
+let treksChart = null
+
+const trekStatusColors = {
+  open: '#198754',
+  ongoing: '#ffc107',
+  completed: '#0d6efd',
+  pending: '#dc3545',
+  approved: '#0dcaf0',
+}
+
+const destroyCharts = () => {
+  if (bookingsChart) {
+    bookingsChart.destroy()
+    bookingsChart = null
+  }
+  if (treksChart) {
+    treksChart.destroy()
+    treksChart = null
+  }
+}
+
+const renderCharts = async () => {
+  if (!report.value?.charts) return
+
+  await nextTick()
+  destroyCharts()
+
+  const bookingsData = report.value.charts.bookings_per_month || []
+  if (bookingsChartRef.value) {
+    bookingsChart = new Chart(bookingsChartRef.value, {
+      type: 'bar',
+      data: {
+        labels: bookingsData.map((item) => item.label),
+        datasets: [{
+          label: 'Bookings',
+          data: bookingsData.map((item) => item.count),
+          backgroundColor: '#198754',
+          borderRadius: 8,
+        }],
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: { legend: { display: false } },
+        scales: {
+          y: { beginAtZero: true, ticks: { precision: 0 } },
+        },
+      },
+    })
+  }
+
+  const trekStatus = report.value.charts.treks_by_status || {}
+  const labels = Object.keys(trekStatus)
+  if (treksChartRef.value && labels.length) {
+    treksChart = new Chart(treksChartRef.value, {
+      type: 'doughnut',
+      data: {
+        labels: labels.map((key) => key.charAt(0).toUpperCase() + key.slice(1)),
+        datasets: [{
+          data: labels.map((key) => trekStatus[key]),
+          backgroundColor: labels.map((key) => trekStatusColors[key] || '#6c757d'),
+        }],
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: { legend: { position: 'bottom' } },
+      },
+    })
+  }
+}
+
+watch(report, () => {
+  renderCharts()
+})
+
 onMounted(async () => {
   try {
     await adminStore.fetchReport()
+    await renderCharts()
   } catch (error) {
     flashStore.show(error.response?.data?.message || 'Failed to load report.', 'error')
   }
+})
+
+onBeforeUnmount(() => {
+  destroyCharts()
 })
 </script>
 
@@ -85,6 +191,34 @@ onMounted(async () => {
         </div>
       </div>
 
+      <!-- charts -->
+      <h4 class="mb-3 d-flex align-items-center gap-2 fw-semibold text-secondary">
+        <i class="bi bi-bar-chart-line text-muted"></i> Visual Analytics
+      </h4>
+
+      <div class="row g-4 mb-5">
+        <div class="col-lg-7">
+          <div class="card status-card border-0 shadow-sm h-100">
+            <div class="card-body">
+              <h5 class="fw-semibold mb-3">Bookings per Month</h5>
+              <div class="chart-wrap">
+                <canvas ref="bookingsChartRef"></canvas>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="col-lg-5">
+          <div class="card status-card border-0 shadow-sm h-100">
+            <div class="card-body">
+              <h5 class="fw-semibold mb-3">Treks by Status</h5>
+              <div class="chart-wrap">
+                <canvas ref="treksChartRef"></canvas>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
       <!-- trek status -->
       <h4 class="mb-3 d-flex align-items-center gap-2 fw-semibold text-secondary">
         <i class="bi bi-activity text-muted"></i> Trek Status
@@ -126,7 +260,6 @@ onMounted(async () => {
         <i class="bi bi-credit-card-2-back text-muted"></i> Payment Statistics
       </h4>
 
-      <!-- payment statistics -->
       <div class="row g-3 mb-5">
         <div class="col-md-4">
           <div class="card status-card border-start border-success border-4 shadow-sm bg-white">
@@ -212,14 +345,17 @@ onMounted(async () => {
   transition: transform 0.25s ease, box-shadow 0.25s ease;
 }
 
-
 .status-card:hover {
   transform: translateY(-4px);
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15) !important;
 }
 
-
 .tracking-wider {
   letter-spacing: 0.05rem;
+}
+
+.chart-wrap {
+  position: relative;
+  height: 280px;
 }
 </style>

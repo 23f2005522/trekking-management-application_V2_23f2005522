@@ -1,5 +1,18 @@
 <script setup>
+import { onMounted, onUnmounted } from 'vue'
 import StaffSidebar from './StaffSidebar.vue'
+import NotificationPanel from '@/components/NotificationPanel.vue'
+import { useNotificationStore } from '@/stores/notificationStore'
+
+const notificationStore = useNotificationStore()
+
+onMounted(() => {
+  notificationStore.connectSSE()
+})
+
+onUnmounted(() => {
+  notificationStore.disconnectSSE()
+})
 </script>
 
 <template>
@@ -10,6 +23,9 @@ import StaffSidebar from './StaffSidebar.vue'
       </div>
 
       <div class="col-11">
+        <div class="d-flex justify-content-end px-2 pt-3">
+          <NotificationPanel panel-id="staffNotificationPanel" />
+        </div>
         <div class="py-4">
           <RouterView />
         </div>

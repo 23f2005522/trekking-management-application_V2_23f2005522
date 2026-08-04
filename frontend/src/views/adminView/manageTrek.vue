@@ -40,6 +40,15 @@ const openEditModal = async (id) => {
   }
 }
 
+const handleTrekWorkflow = async (trekId, action) => {
+  try {
+    const data = await trekStore.updateTrekWorkflowStatus(trekId, action)
+    flashStore.show(data.message || 'Trek status updated.', 'success')
+  } catch (error) {
+    flashStore.show(error.response?.data?.message || 'Failed to update trek status.', 'error')
+  }
+}
+
 const selectedTrekForDelete = ref(null)
 </script>
 
@@ -145,8 +154,28 @@ const selectedTrekForDelete = ref(null)
 
               <td>
                 <button
+                  v-if="trek.status === 'pending'"
                   type="button"
-                  class="btn btn-outline-primary btn-sm me-2"
+                  class="btn btn-info btn-sm me-1"
+                  title="Approve trek"
+                  @click="handleTrekWorkflow(trek.id, 'approve')"
+                >
+                  <i class="bi bi-check-lg"></i>
+                </button>
+
+                <button
+                  v-if="trek.status === 'approved'"
+                  type="button"
+                  class="btn btn-success btn-sm me-1"
+                  title="Open for booking"
+                  @click="handleTrekWorkflow(trek.id, 'open')"
+                >
+                  <i class="bi bi-door-open"></i>
+                </button>
+
+                <button
+                  type="button"
+                  class="btn btn-outline-primary btn-sm me-1"
                   data-bs-toggle="modal"
                   data-bs-target="#editTrekModal"
                   @click="openEditModal(trek.id)"
@@ -156,7 +185,7 @@ const selectedTrekForDelete = ref(null)
 
                 <button
                   type="button"
-                  class="btn btn-danger"
+                  class="btn btn-danger btn-sm"
                   data-bs-toggle="modal"
                   data-bs-target="#deleteTrekModal"
                   @click="selectedTrekForDelete = trek.id"

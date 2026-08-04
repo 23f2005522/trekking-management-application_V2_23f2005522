@@ -1,6 +1,8 @@
 import { defineStore } from "pinia"
 import { ref } from "vue"
 import axiosInstance from "@/utils/axioUtil"
+import { useUserNotificationStore } from "@/stores/userNotificationStore"
+import { useTrekkerStore } from "@/stores/trekker/trekkerStore"
 
 export const useBookingStore = defineStore("booking", () => {
 
@@ -11,8 +13,10 @@ export const useBookingStore = defineStore("booking", () => {
     const cancelBookingLoading = ref(false)
 
     // actions
-    async function fetchBookings() {
-        loadingBookings.value = true
+    async function fetchBookings(silent = false) {
+        if (!silent) {
+            loadingBookings.value = true
+        }
 
         try {
             const response = await axiosInstance.get("/trekker/bookings")
@@ -21,7 +25,9 @@ export const useBookingStore = defineStore("booking", () => {
 
             return response.data
         } finally {
-            loadingBookings.value = false
+            if (!silent) {
+                loadingBookings.value = false
+            }
         }
     }
 
@@ -33,7 +39,14 @@ export const useBookingStore = defineStore("booking", () => {
                 `/trekker/deletebooking/${bookingId}`
             )
 
-            await fetchBookings()
+            await fetchBookings(true)
+
+            const userNotificationStore = useUserNotificationStore()
+            const trekkerStore = useTrekkerStore()
+            await Promise.all([
+                userNotificationStore.fetchNotifications({ silent: true }),
+                trekkerStore.fetchDashboardData(true),
+            ])
 
             return response.data
         } finally {

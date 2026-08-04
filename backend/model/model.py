@@ -72,6 +72,7 @@ class ReportType(str, Enum):
     TREKKING_HISTORY = "trekking_history"
     ANALYTICS = "analytics"
     MONTHLY = "monthly"
+    ADMIN_BOOKINGS = "admin_bookings"
 
 
 # Mixins {using Multiple Inheritance to create common fields for all models}

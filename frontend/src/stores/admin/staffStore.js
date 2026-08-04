@@ -69,10 +69,10 @@ export const useStaffStore = defineStore("adminStaff", () => {
     );
 
     // actions
-    async function handelEditStaff() {
+    async function handelEditStaff(status = selectedStatus.value, reasonText = reason.value) {
         const response = await axiosInstance.post(
-            `/admin/staffs/${selectedStaffId.value}/${selectedStatus.value}`,
-            { reason: reason.value }
+            `/admin/staffs/${selectedStaffId.value}/${status}`,
+            { reason: reasonText }
         );
         await allFetchStaffs();
         return response.data;

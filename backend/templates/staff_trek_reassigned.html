@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Trek Reassignment</title>
+    <style>
+        body { font-family: 'Segoe UI', sans-serif; background: #f5f7fa; margin: 0; padding: 30px; color: #23293d; }
+        .container { max-width: 560px; margin: 0 auto; background: #fff; border-radius: 14px; overflow: hidden; box-shadow: 0 4px 18px rgba(0,0,0,0.1); }
+        .header { background: linear-gradient(135deg, #dc3545, #fd7e14); color: #fff; padding: 24px 28px; }
+        .content { padding: 24px 28px; line-height: 1.6; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1 style="margin:0;">Trek Reassignment</h1>
+            <p style="margin:8px 0 0; opacity:0.9;">TrekMaster Staff Portal</p>
+        </div>
+        <div class="content">
+            <p>Hi <strong>{{ staff_name }}</strong>,</p>
+            <p>Trek <strong>"{{ trek_name }}"</strong> has been reassigned to another staff member.</p>
+            <p>You no longer have access to manage this trek in your dashboard.</p>
+        </div>
+    </div>
+</body>
+</html>

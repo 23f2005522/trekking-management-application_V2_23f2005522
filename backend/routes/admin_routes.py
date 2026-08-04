@@ -1,8 +1,22 @@
-from flask import Blueprint, jsonify, request
-from flask_jwt_extended import jwt_required
-from sqlalchemy import func
+from datetime import datetime, timedelta
+import os
+
+from flask import Blueprint, jsonify, request, send_file
+from flask_jwt_extended import get_jwt_identity, jwt_required
+from sqlalchemy import func, or_
 from sqlalchemy.exc import IntegrityError
 from utils.auth_utility import role_required
+from utils.notification_utils import (
+    email_staff_trek_assigned,
+    email_staff_trek_reassigned,
+    notify_staff_deactivated,
+    notify_staff_reactivated,
+    notify_staff_trek_assigned,
+    notify_staff_trek_reassigned,
+    publish_sse,
+    push_sse_notifications,
+)
+from utils.cache_utility import clear_trekker_open_treks_cache
 from model.model import *
 
 admin_bp = Blueprint("admin", __name__, url_prefix="/api/admin")
@@ -240,7 +254,20 @@ def add_trek():
         )
 
         db.session.add(new_trek)
+
+        sse_entries = []
+        if staff_member:
+            message = notify_staff_trek_assigned(staff_member.user_id, name)
+            sse_entries.append(
+                (staff_member.user_id, message, "reminder", "staff_trek_assigned")
+            )
+
         db.session.commit()
+
+        push_sse_notifications(sse_entries)
+
+        if staff_member:
+            email_staff_trek_assigned(staff_member.user, new_trek)
 
         response = {
             "message": "Trek added successfully.",
@@ -342,6 +369,8 @@ def edit_trek(trek_id):
             data = request.get_json(silent=True)
             print(f"Received data for updating trek: {data}")
 
+            previous_staff_id = trek.assigned_staff_id
+
             # check even that assigned staff exists
             assigned_staff_id = data.get("assigned_staff_id", 9999999)
             print(f"Received assigned_staff_id: {assigned_staff_id}")
@@ -412,7 +441,39 @@ def edit_trek(trek_id):
             except ValueError:
                 trek.status = TrekStatus.PENDING
 
+            sse_entries = []
+            new_staff_id = trek.assigned_staff_id
+
+            if new_staff_id != previous_staff_id:
+                if new_staff_id:
+                    new_staff = StaffModel.query.get(new_staff_id)
+                    if new_staff:
+                        message = notify_staff_trek_assigned(new_staff.user_id, trek.name)
+                        sse_entries.append(
+                            (new_staff.user_id, message, "reminder", "staff_trek_assigned")
+                        )
+
+                if previous_staff_id and previous_staff_id != new_staff_id:
+                    old_staff = StaffModel.query.get(previous_staff_id)
+                    if old_staff:
+                        message = notify_staff_trek_reassigned(old_staff.user_id, trek.name)
+                        sse_entries.append(
+                            (old_staff.user_id, message, "reminder", "staff_trek_reassigned")
+                        )
+
             db.session.commit()
+            push_sse_notifications(sse_entries)
+
+            if new_staff_id != previous_staff_id:
+                if new_staff_id:
+                    assigned_staff = StaffModel.query.get(new_staff_id)
+                    if assigned_staff:
+                        email_staff_trek_assigned(assigned_staff.user, trek)
+                if previous_staff_id and previous_staff_id != new_staff_id:
+                    removed_staff = StaffModel.query.get(previous_staff_id)
+                    if removed_staff:
+                        email_staff_trek_reassigned(removed_staff.user, trek.name)
+
             response = {
                 "message": "Trek updated successfully.",
                 "trek": {
@@ -623,13 +684,44 @@ def update_staff_status(staff_id, status):
             staff_user.is_active = False
             staff_user.blacklisted_reason = None
 
+        elif status.lower() == "deactivate":
+            if staff_user.is_blacklisted:
+                return jsonify({
+                    "message": "Cannot deactivate a blacklisted staff member. Remove blacklist first.",
+                }), 400
+            if staff_user.staff_profile.Profile_status != StaffStatus.APPROVED:
+                return jsonify({
+                    "message": "Only approved staff can be deactivated.",
+                }), 400
+            staff_user.is_active = False
+            staff_user.blacklisted_reason = reason
+            notify_message = notify_staff_deactivated(staff_user.id, reason)
+
+        elif status.lower() == "reactivate":
+            if staff_user.is_blacklisted:
+                return jsonify({
+                    "message": "Cannot reactivate a blacklisted staff member. Remove blacklist first.",
+                }), 400
+            if staff_user.staff_profile.Profile_status != StaffStatus.APPROVED:
+                return jsonify({
+                    "message": "Only approved staff can be reactivated.",
+                }), 400
+            staff_user.is_active = True
+            staff_user.blacklisted_reason = None
+            notify_message = notify_staff_reactivated(staff_user.id)
+
         else:
             response = {
-                "message": "Invalid status. Use 'approved', 'rejected', 'blacklisted', or 'pending'.",
+                "message": "Invalid status. Use 'approved', 'rejected', 'blacklisted', 'pending', 'deactivate', or 'reactivate'.",
             }
             return jsonify(response), 400
 
         db.session.commit()
+
+        if status.lower() == "deactivate":
+            publish_sse(staff_user.id, notify_message, "reminder", "staff_deactivated")
+        elif status.lower() == "reactivate":
+            publish_sse(staff_user.id, notify_message, "reminder", "staff_reactivated")
 
         response = {
             "message": f"Staff member {status} successfully.",
@@ -767,13 +859,49 @@ def update_trekker_status(trekker_id, action):
 # Booking routes
 
 
-# get all bookings
+# get all bookings (optional filters: search, status, payment_status, from_date, to_date)
 @admin_bp.route("/bookings", methods=["GET"])
 @jwt_required()
 @role_required(UserRole.ADMIN)
 def get_bookings():
     try:
-        bookings = BookingModel.query.order_by(BookingModel.booking_date.desc()).all()
+        search = (request.args.get("search") or "").strip()
+        status = (request.args.get("status") or "").strip()
+        payment_status = (request.args.get("payment_status") or "").strip()
+        from_date = (request.args.get("from_date") or "").strip()
+        to_date = (request.args.get("to_date") or "").strip()
+
+        query = BookingModel.query
+
+        if status:
+            query = query.filter(BookingModel.status == BookingStatus(status))
+
+        if payment_status:
+            query = query.filter(
+                BookingModel.payment_status == PaymentStatus(payment_status)
+            )
+
+        if from_date:
+            start = datetime.strptime(from_date, "%Y-%m-%d")
+            query = query.filter(BookingModel.booking_date >= start)
+
+        if to_date:
+            end = datetime.strptime(to_date, "%Y-%m-%d") + timedelta(days=1)
+            query = query.filter(BookingModel.booking_date < end)
+
+        if search:
+            if search.isdigit():
+                query = query.filter(BookingModel.id == int(search))
+            else:
+                query = query.join(UserModel).join(TrekModel).filter(
+                    or_(
+                        UserModel.username.ilike(f"%{search}%"),
+                        UserModel.email.ilike(f"%{search}%"),
+                        TrekModel.name.ilike(f"%{search}%"),
+                    )
+                )
+
+        bookings = query.order_by(BookingModel.booking_date.desc()).all()
 
         bookings_JSON = [
             {
@@ -801,17 +929,189 @@ def get_bookings():
                 {
                     "message": "Bookings fetched successfully.",
                     "bookings": bookings_JSON,
+                    "count": len(bookings_JSON),
                 }
             ),
             200,
         )
 
+    except ValueError as e:
+        return jsonify({"message": f"Invalid filter value: {e}"}), 400
     except Exception as e:
         print(f"Error occurred while fetching bookings: {e}")
         response = {
             "message": "An error occurred while fetching bookings.",
         }
         return jsonify(response), 500
+
+
+# approve trek (PENDING -> APPROVED) or open for booking (APPROVED -> OPEN)
+@admin_bp.route("/treks/<int:trek_id>/status", methods=["POST"])
+@jwt_required()
+@role_required(UserRole.ADMIN)
+def update_trek_workflow_status(trek_id):
+    try:
+        data = request.get_json(silent=True) or {}
+        action = (data.get("action") or "").strip().lower()
+
+        trek = TrekModel.query.get(trek_id)
+        if not trek:
+            return jsonify({"message": "Trek not found."}), 404
+
+        if action == "approve":
+            if trek.status != TrekStatus.PENDING:
+                return jsonify(
+                    {"message": "Only pending treks can be approved."}
+                ), 400
+            trek.status = TrekStatus.APPROVED
+            message = f"Trek '{trek.name}' approved successfully."
+
+        elif action == "open":
+            if trek.status != TrekStatus.APPROVED:
+                return jsonify(
+                    {"message": "Only approved treks can be opened for booking."}
+                ), 400
+            trek.status = TrekStatus.OPEN
+            clear_trekker_open_treks_cache()
+            message = f"Trek '{trek.name}' is now open for booking."
+
+        else:
+            return jsonify({"message": "Invalid action. Use approve or open."}), 400
+
+        db.session.commit()
+
+        return jsonify(
+            {
+                "message": message,
+                "trek": {
+                    "id": trek.id,
+                    "name": trek.name,
+                    "status": trek.status.value,
+                },
+            }
+        ), 200
+
+    except Exception as e:
+        db.session.rollback()
+        print(f"Error updating trek workflow status: {e}")
+        return jsonify({"message": "An error occurred while updating trek status."}), 500
+
+
+def _export_job_serializer(job):
+    return {
+        "id": job.id,
+        "status": job.status.value if job.status else None,
+        "type_of_report": job.type_of_report.value if job.type_of_report else None,
+        "file_path": os.path.basename(job.file_path) if job.file_path else None,
+        "created_at": job.created_at.strftime("%Y-%m-%d %H:%M:%S") if job.created_at else None,
+    }
+
+
+@admin_bp.route("/export-bookings", methods=["POST"])
+@jwt_required()
+@role_required(UserRole.ADMIN)
+def start_admin_bookings_export():
+    try:
+        user_id = int(get_jwt_identity())
+        user = UserModel.query.get(user_id)
+
+        if not user:
+            return jsonify({"message": "User not found."}), 404
+
+        from utils.celery_health import fail_stale_export_jobs, is_celery_worker_available
+
+        fail_stale_export_jobs(user_id=user_id)
+
+        if not is_celery_worker_available():
+            message = (
+                "CSV export is unavailable right now. "
+                "Please start the Celery worker and try again."
+            )
+            publish_sse(user.id, message, "export", action="export_failed")
+            return jsonify({"message": message}), 503
+
+        job = ExportJobModel(
+            user_id=user.id,
+            status=ExportStatus.PENDING,
+            type_of_report=ReportType.ADMIN_BOOKINGS,
+        )
+        db.session.add(job)
+
+        try:
+            db.session.flush()
+            from tasks import export_admin_bookings_csv
+
+            export_admin_bookings_csv.delay(job.id)
+            db.session.commit()
+        except Exception as queue_error:
+            db.session.rollback()
+            print(f"Admin export queue failed: {queue_error}")
+            message = (
+                "CSV export could not be started. "
+                "Ensure Redis and the Celery worker are running."
+            )
+            publish_sse(user.id, message, "export", action="export_failed")
+            return jsonify({"message": message}), 503
+
+        return jsonify(
+            {
+                "message": "Bookings export started. You will be notified when ready.",
+                "job_id": job.id,
+            }
+        ), 202
+
+    except Exception as e:
+        db.session.rollback()
+        print(f"Error starting admin export: {e}")
+        return jsonify({"message": "An error occurred while starting export."}), 500
+
+
+@admin_bp.route("/export-jobs", methods=["GET"])
+@jwt_required()
+@role_required(UserRole.ADMIN)
+def list_admin_export_jobs():
+    user_id = int(get_jwt_identity())
+
+    from utils.celery_health import fail_stale_export_jobs
+
+    fail_stale_export_jobs(user_id=user_id)
+
+    jobs = (
+        ExportJobModel.query.filter_by(user_id=user_id)
+        .order_by(ExportJobModel.created_at.desc())
+        .all()
+    )
+
+    return jsonify(
+        {
+            "message": "Export jobs fetched successfully.",
+            "export_jobs": [_export_job_serializer(job) for job in jobs],
+        }
+    ), 200
+
+
+@admin_bp.route("/export/<int:job_id>/download", methods=["GET"])
+@jwt_required()
+@role_required(UserRole.ADMIN)
+def download_admin_export(job_id):
+    user_id = int(get_jwt_identity())
+    job = ExportJobModel.query.get(job_id)
+
+    if not job or job.user_id != user_id:
+        return jsonify({"message": "Export job not found."}), 404
+
+    if job.status != ExportStatus.COMPLETED or not job.file_path:
+        return jsonify({"message": "Export is not ready yet."}), 400
+
+    if not os.path.isfile(job.file_path):
+        return jsonify({"message": "Export file not found on server."}), 404
+
+    return send_file(
+        job.file_path,
+        as_attachment=True,
+        download_name=os.path.basename(job.file_path),
+        mimetype="text/csv",
+    )
 
 
 # report generation routes
@@ -866,6 +1166,29 @@ def generate_report():
         for trek in popular_treks
     ]
 
+    now = datetime.utcnow()
+    bookings_per_month = []
+    for offset in range(5, -1, -1):
+        month_index = now.month - offset
+        year = now.year
+        while month_index <= 0:
+            month_index += 12
+            year -= 1
+        month_start = datetime(year, month_index, 1)
+        if month_index == 12:
+            month_end = datetime(year + 1, 1, 1)
+        else:
+            month_end = datetime(year, month_index + 1, 1)
+
+        count = BookingModel.query.filter(
+            BookingModel.booking_date >= month_start,
+            BookingModel.booking_date < month_end,
+        ).count()
+        bookings_per_month.append({
+            "label": month_start.strftime("%b %Y"),
+            "count": count,
+        })
+
     response = {
         "message": "Report generated successfully.",
         "overview": {
@@ -892,6 +1215,16 @@ def generate_report():
             "revenue": revenue,
         },
         "popular_treks": popular_treks_JSON,
+        "charts": {
+            "bookings_per_month": bookings_per_month,
+            "treks_by_status": {
+                "open": open_count,
+                "ongoing": ongoing_count,
+                "completed": completed_count,
+                "pending": pending_count,
+                "approved": approved_count,
+            },
+        },
     }
 
     return jsonify(response), 200

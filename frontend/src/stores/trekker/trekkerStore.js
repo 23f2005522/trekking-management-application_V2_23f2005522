@@ -13,8 +13,10 @@ export const useTrekkerStore = defineStore("trekker", () => {
     const loadingDashboard = ref(false);
 
     // actions
-    async function fetchDashboardData() {
-        loadingDashboard.value = true;
+    async function fetchDashboardData(silent = false) {
+        if (!silent) {
+            loadingDashboard.value = true;
+        }
 
         try {
             const { data } = await axiosInstance.get("/trekker/dashboard");
@@ -25,7 +27,9 @@ export const useTrekkerStore = defineStore("trekker", () => {
             recentBookings.value = data.recent_bookings || [];
             return data;
         } finally {
-            loadingDashboard.value = false;
+            if (!silent) {
+                loadingDashboard.value = false;
+            }
         }
     }
 

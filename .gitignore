@@ -3,6 +3,10 @@ __pycache__/
 *.py[cod]
 *$py.class
 
+# Environment variables (secrets — use .env.example as template)
+.env
+backend/.env
+
 # Virtual environment
 venv/
 env/
@@ -49,5 +53,6 @@ celerybeat-schedule.dir
 backend/exports/*
 !backend/exports/.gitkeep
 
+/resource/
 
 

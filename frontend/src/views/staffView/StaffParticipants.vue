@@ -65,6 +65,17 @@ const togglePayment = async (participant) => {
   }
 }
 
+const markAllPaid = async () => {
+  if (!selectedTrekId.value) return
+
+  try {
+    const data = await staffStore.markAllParticipantsPaid(selectedTrekId.value)
+    flashStore.show(data?.message || 'All participants marked as paid.', 'success')
+  } catch (error) {
+    flashStore.show(error.response?.data?.message || 'Failed to mark all as paid.', 'error')
+  }
+}
+
 const selectTrek = (trekId) => {
   selectedTrekId.value = trekId
 }
@@ -151,7 +162,16 @@ onMounted(async () => {
               <p v-else class="text-muted mb-0">Choose an assigned trek to see bookings.</p>
             </div>
 
-            <div v-if="trek" class="d-flex gap-2 flex-wrap">
+            <div v-if="trek" class="d-flex gap-2 flex-wrap align-items-center">
+              <button
+                v-if="participants.length > 0"
+                type="button"
+                class="btn btn-sm btn-success"
+                @click="markAllPaid"
+              >
+                <i class="bi bi-cash-stack me-1"></i>
+                Mark all paid
+              </button>
               <span class="badge bg-light text-dark border px-3 py-2">
                 Total: {{ trek.total_participants }}
               </span>

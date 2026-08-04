@@ -8,11 +8,33 @@ from flask_jwt_extended import get_jwt_identity, jwt_required
 
 from config.config import Config
 from utils.cache_utility import clear_trekker_open_treks_cache
+from utils.notification_utils import (
+    notify_trekker_booking,
+    notify_trekker_booking_canceled,
+    publish_sse,
+)
 from extensions.cache import cache
 from model.model import *
 from utils.auth_utility import role_required
 
 trekker_bp = Blueprint("trekker_routes", __name__, url_prefix="/api/trekker")
+
+
+def _decrement_slot_and_maybe_close(trek):
+    trek.available_slots -= 1
+    if trek.available_slots <= 0:
+        trek.status = TrekStatus.CLOSED
+
+
+def _queue_booking_confirmation_email(booking_id):
+    """Queue email after commit — must not roll back booking if queue fails."""
+    try:
+        from tasks import send_booking_confirmation_email
+
+        send_booking_confirmation_email.delay(booking_id)
+        print(f"Queued booking confirmation email for booking #{booking_id}")
+    except Exception as exc:
+        print(f"Failed to queue booking confirmation email for booking #{booking_id}: {exc}")
 
 
 # helper to shape trek data before sending to frontend
@@ -397,11 +419,20 @@ def book_trek():
             existing_booking.payment_status = PaymentStatus.PENDING
             existing_booking.amount_paid = 0.0
 
-            trek.available_slots -= 1
+            _decrement_slot_and_maybe_close(trek)
+            booking_message = notify_trekker_booking(user.id, trek.name, rebook=True)
             db.session.commit()
 
-            ## clear the trekker_open_treks cache after booking a trek
             clear_trekker_open_treks_cache()
+            publish_sse(
+                user.id,
+                booking_message,
+                "booking",
+                "trekker_booking",
+                skip_toast=True,
+            )
+
+            _queue_booking_confirmation_email(existing_booking.id)
 
             return (
                 jsonify(
@@ -425,9 +456,17 @@ def book_trek():
 
     try:
         db.session.add(new_booking)
-        trek.available_slots -= 1
+        _decrement_slot_and_maybe_close(trek)
+        booking_message = notify_trekker_booking(user.id, trek.name, rebook=False)
         db.session.commit()
         clear_trekker_open_treks_cache()
+        publish_sse(
+            user.id,
+            booking_message,
+            "booking",
+            "trekker_booking",
+            skip_toast=True,
+        )
     except Exception as e:
         db.session.rollback()
         print(f"Error occurred while booking trek: {e}")
@@ -435,6 +474,8 @@ def book_trek():
             jsonify({"message": "An error occurred while booking the trek."}),
             500,
         )
+
+    _queue_booking_confirmation_email(new_booking.id)
 
     return (
         jsonify(
@@ -474,14 +515,22 @@ def cancel_booking(booking_id):
         return jsonify({"message": "Only booked treks can be canceled."}), 400
 
     try:
+        trek_name = booking.trek.name
         booking.status = BookingStatus.CANCELED
         booking.payment_status = PaymentStatus.FAILED
         booking.trek.available_slots += 1
         booking.booking_cancel_date = datetime.utcnow()
+        cancel_message = notify_trekker_booking_canceled(user.id, trek_name)
         db.session.commit()
 
-        ## clear the trekker_open_treks cache after canceling a booking
         clear_trekker_open_treks_cache()
+        publish_sse(
+            user.id,
+            cancel_message,
+            "booking",
+            "trekker_booking_cancel",
+            skip_toast=True,
+        )
 
     except Exception as e:
         db.session.rollback()
@@ -585,17 +634,50 @@ def start_export_history():
         if not user:
             return jsonify({"message": "User not found."}), 404
 
+        from utils.celery_health import fail_stale_export_jobs, is_celery_worker_available
+
+        fail_stale_export_jobs(user_id=user.id)
+
+        if not is_celery_worker_available():
+            message = (
+                "CSV export is unavailable right now. "
+                "Please start the Celery worker and try again."
+            )
+            publish_sse(
+                user.id,
+                message,
+                "export",
+                action="export_failed",
+            )
+            return jsonify({"message": message}), 503
+
         job = ExportJobModel(
             user_id=user.id,
             status=ExportStatus.PENDING,
             type_of_report=ReportType.TREKKING_HISTORY,
         )
         db.session.add(job)
-        db.session.commit()
 
-        from tasks import export_trekker_history_csv
+        try:
+            db.session.flush()
+            from tasks import export_trekker_history_csv
 
-        export_trekker_history_csv.delay(job.id)
+            export_trekker_history_csv.delay(job.id)
+            db.session.commit()
+        except Exception as queue_error:
+            db.session.rollback()
+            print(f"Export queue failed: {queue_error}")
+            message = (
+                "CSV export could not be started. "
+                "Ensure Redis and the Celery worker are running."
+            )
+            publish_sse(
+                user.id,
+                message,
+                "export",
+                action="export_failed",
+            )
+            return jsonify({"message": message}), 503
 
         return jsonify({
             "message": "Export started. You will be notified when your CSV is ready.",
@@ -614,6 +696,11 @@ def start_export_history():
 @role_required(UserRole.TREKKER)
 def list_export_jobs():
     user_id = int(get_jwt_identity())
+
+    from utils.celery_health import fail_stale_export_jobs
+
+    fail_stale_export_jobs(user_id=user_id)
+
     jobs = (
         ExportJobModel.query.filter_by(user_id=user_id)
         .order_by(ExportJobModel.created_at.desc())

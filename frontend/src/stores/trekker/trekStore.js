@@ -1,6 +1,9 @@
 import { defineStore } from 'pinia'
 import { ref, watch } from 'vue'
 import axiosInstance from '@/utils/axioUtil'
+import { useUserNotificationStore } from '@/stores/userNotificationStore'
+import { useBookingStore } from '@/stores/trekker/bookingStore'
+import { useTrekkerStore } from '@/stores/trekker/trekkerStore'
 
 export const useTrekStore = defineStore("trekkerTrek", () => {
 
@@ -53,8 +56,10 @@ export const useTrekStore = defineStore("trekkerTrek", () => {
         () => scheduleFetchTreks(400)
     )
 
-    async function fetchTreks() {
-        loadingTreks.value = true
+    async function fetchTreks(silent = false) {
+        if (!silent) {
+            loadingTreks.value = true
+        }
         try {
             const params = {}
 
@@ -74,7 +79,9 @@ export const useTrekStore = defineStore("trekkerTrek", () => {
         } catch (error) {
             console.error("Error fetching treks:", error)
         } finally {
-            loadingTreks.value = false
+            if (!silent) {
+                loadingTreks.value = false
+            }
         }
     }
 
@@ -94,6 +101,16 @@ export const useTrekStore = defineStore("trekkerTrek", () => {
             const response = await axiosInstance.post('/trekker/booktrek', {
                 trek_id: selectedTrek.value.id,
             })
+
+            const userNotificationStore = useUserNotificationStore()
+            const bookingStore = useBookingStore()
+            const trekkerStore = useTrekkerStore()
+
+            await Promise.all([
+                userNotificationStore.fetchNotifications({ silent: true }),
+                bookingStore.fetchBookings(true),
+                trekkerStore.fetchDashboardData(true),
+            ])
 
             return response.data
         } finally {

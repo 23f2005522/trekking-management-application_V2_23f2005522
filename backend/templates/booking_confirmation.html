@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Booking Confirmation</title>
+    <style>
+        body { font-family: 'Segoe UI', sans-serif; background: #f5f7fa; margin: 0; padding: 30px; color: #23293d; }
+        .container { max-width: 560px; margin: 0 auto; background: #fff; border-radius: 14px; overflow: hidden; box-shadow: 0 4px 18px rgba(0,0,0,0.1); }
+        .header { background: linear-gradient(135deg, #0d6efd, #20c997); color: #fff; padding: 24px 28px; }
+        .content { padding: 24px 28px; line-height: 1.6; }
+        .details { background: #f8f9fa; border-left: 4px solid #0d6efd; padding: 16px; border-radius: 8px; margin-top: 16px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1 style="margin:0;">Booking Confirmed</h1>
+            <p style="margin:8px 0 0; opacity:0.9;">TrekMaster</p>
+        </div>
+        <div class="content">
+            <p>Hi <strong>{{ trekker_name }}</strong>,</p>
+            <p>Your trek booking is confirmed. Here are the details:</p>
+            <div class="details">
+                <strong>{{ trek_name }}</strong><br>
+                Location: {{ location }}<br>
+                Start: {{ starting_at }}<br>
+                End: {{ ending_at }}<br>
+                Booking ID: #{{ booking_id }}<br>
+                Amount: ₹{{ price }}
+            </div>
+            <p style="margin-top:20px;">Payment status: <strong>{{ payment_status }}</strong>. Complete payment before the trek start date.</p>
+        </div>
+    </div>
+</body>
+</html>

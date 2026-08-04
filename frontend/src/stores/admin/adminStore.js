@@ -11,8 +11,8 @@ export const useAdminStore = defineStore("Admin", () => {
     const loadingAdmin = ref(false);
 
     // actions
-    const fetchAdminData = async () => {
-        if (admin.value && dashboardData.value) return;
+    const fetchAdminData = async (force = false) => {
+        if (!force && admin.value && dashboardData.value) return;
 
         loadingAdmin.value = true;
 

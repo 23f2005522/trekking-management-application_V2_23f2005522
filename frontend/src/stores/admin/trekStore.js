@@ -27,14 +27,18 @@ export const useTrekStore = defineStore("treks", () => {
     });
 
     // actions
-    async function fetchTreks() {
-        loadingtreks.value = true;
+    async function fetchTreks(silent = false) {
+        if (!silent) {
+            loadingtreks.value = true;
+        }
         try {
             const { data } = await axiosInstance.get("/admin/treks");
             treks.value = data.treks;
             return data;
         } finally {
-            loadingtreks.value = false;
+            if (!silent) {
+                loadingtreks.value = false;
+            }
         }
     }
 
@@ -89,6 +93,12 @@ export const useTrekStore = defineStore("treks", () => {
         }
     }
 
+    async function updateTrekWorkflowStatus(trekId, action) {
+        const { data } = await axiosInstance.post(`/admin/treks/${trekId}/status`, { action });
+        await fetchTreks(true);
+        return data;
+    }
+
     return {
         treks,
         loadingtreks,
@@ -102,6 +112,7 @@ export const useTrekStore = defineStore("treks", () => {
         fetchTrekById,
         clearEditingTrek,
         updateTrek,
+        updateTrekWorkflowStatus,
         deleteTrek,
         addTrek,
     };

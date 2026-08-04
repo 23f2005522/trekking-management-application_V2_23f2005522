@@ -1,5 +1,6 @@
 from flask import Blueprint, jsonify, request
 from flask_jwt_extended import get_jwt_identity, jwt_required
+from datetime import datetime, timedelta
 from utils.auth_utility import role_required
 from model.model import *
 from utils.cache_utility import clear_trekker_open_treks_cache
@@ -65,11 +66,38 @@ def dashboard():
 
     staff_json = _staff_profile_json(user)
 
+    now = datetime.utcnow()
+    week_later = now + timedelta(days=7)
+    upcoming_treks_list_json = []
+
+    for trek in assigned_treks:
+        if not trek.starting_at:
+            continue
+        if now <= trek.starting_at <= week_later:
+            total_participants = sum(
+                1 for booking in trek.bookings if booking.status == BookingStatus.BOOKED
+            )
+            upcoming_treks_list_json.append(
+                {
+                    "id": trek.id,
+                    "name": trek.name,
+                    "location": trek.location,
+                    "status": trek.status.value,
+                    "starting_date": trek.starting_at.strftime("%Y-%m-%d"),
+                    "ending_date": trek.ending_at.strftime("%Y-%m-%d"),
+                    "total_participants": total_participants,
+                    "days_until_start": (trek.starting_at.date() - now.date()).days,
+                }
+            )
+
+    upcoming_treks_list_json.sort(key=lambda item: item["starting_date"])
+
     return jsonify(
         {
             "message": "Welcome Staff",
             "staff_profile": staff_json,
             "assigned_treks": assigned_treks_list_json,
+            "upcoming_treks": upcoming_treks_list_json,
         }
     )
 
@@ -485,6 +513,52 @@ def update_participant_payment_status(trek_id, booking_id):
         return jsonify({
             "message": "Failed to update payment status."
         }), 500
+
+
+@staff_bp.route("/treks/<int:trek_id>/participants/mark-all-paid", methods=["POST"])
+@jwt_required()
+@role_required(UserRole.STAFF)
+def mark_all_participants_paid(trek_id):
+    user_id = int(get_jwt_identity())
+    user = UserModel.query.get(user_id)
+
+    if not user:
+        return jsonify({"message": "User not found"}), 404
+
+    trek = TrekModel.query.get(trek_id)
+
+    if not trek:
+        return jsonify({"message": "Trek not found"}), 404
+
+    staff_profile = user.staff_profile
+
+    if trek not in staff_profile.treks:
+        return jsonify({"message": "This trek is not assigned to you."}), 403
+
+    try:
+        bookings = BookingModel.query.filter_by(
+            trek_id=trek.id,
+            status=BookingStatus.BOOKED,
+        ).all()
+
+        updated_count = 0
+        for booking in bookings:
+            if booking.payment_status != PaymentStatus.PAID:
+                booking.payment_status = PaymentStatus.PAID
+                booking.amount_paid = trek.price
+                updated_count += 1
+
+        db.session.commit()
+
+        return jsonify({
+            "message": f"Marked {updated_count} participant(s) as paid.",
+            "updated_count": updated_count,
+        }), 200
+
+    except Exception as e:
+        db.session.rollback()
+        print(f"Error marking all paid: {e}")
+        return jsonify({"message": "Failed to mark all participants as paid."}), 500
 
 
 

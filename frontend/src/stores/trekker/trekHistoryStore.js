@@ -51,6 +51,9 @@ export const useTrekHistoryStore = defineStore("trekHistory", () => {
             }
 
             return data
+        } catch (error) {
+            await fetchExportJobs()
+            throw error
         } finally {
             exporting.value = false
         }

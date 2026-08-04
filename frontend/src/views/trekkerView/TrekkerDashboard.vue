@@ -53,7 +53,7 @@ onMounted(async () => {
 
       <button class="btn btn-success" @click="router.push('/trekker/profile')">
         <i class="bi bi-person me-1"></i>
-         Manage Profile
+        Manage Profile
       </button>
     </div>
 

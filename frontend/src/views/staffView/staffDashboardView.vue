@@ -153,6 +153,55 @@ onMounted(async () => {
           </div>
         </div>
 
+        <!-- Treks starting in 7 days -->
+        <div class="card shadow-sm mt-4 border-0">
+          <div class="card-header bg-white d-flex justify-content-between align-items-center">
+            <h4 class="mb-0">
+              <i class="bi bi-calendar-event text-primary me-2"></i>
+              Treks Starting in 7 Days
+            </h4>
+            <span class="badge bg-primary">{{ staffStore.upcomingTreks.length }} upcoming</span>
+          </div>
+
+          <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+              <thead class="table-light">
+                <tr>
+                  <th>Trek</th>
+                  <th>Location</th>
+                  <th>Start Date</th>
+                  <th>Participants</th>
+                  <th>Starts In</th>
+                  <th>Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr v-for="trek in staffStore.upcomingTreks" :key="trek.id">
+                  <td class="fw-semibold">{{ trek.name }}</td>
+                  <td>{{ trek.location }}</td>
+                  <td>{{ formatDisplayDate(trek.starting_date) }}</td>
+                  <td>{{ trek.total_participants }}</td>
+                  <td>
+                    <span class="badge bg-info text-dark">
+                      {{ trek.days_until_start === 0 ? 'Today' : `${trek.days_until_start} day(s)` }}
+                    </span>
+                  </td>
+                  <td>
+                    <span :class="['badge text-uppercase', getStatusBadgeClass(trek.status)]">
+                      {{ trek.status }}
+                    </span>
+                  </td>
+                </tr>
+                <tr v-if="staffStore.upcomingTreks.length === 0">
+                  <td colspan="6" class="text-center text-muted py-4">
+                    No treks starting in the next 7 days.
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
         <!-- Assigned Treks Table -->
         <div class="card shadow-sm mt-5">
           <div class="card-header bg-white">
