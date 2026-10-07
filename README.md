@@ -6,11 +6,16 @@ Built with **Flask** (REST API + Celery + Redis + SSE) and **Vue 3** (Pinia + Bo
 
 **V1 repository:** [trekking-management-application_23f2005522](https://github.com/23f2005522/trekking-management-application_23f2005522)
 
+**Demo Video:** [Link](https://drive.google.com/file/d/1w4PhEc6bHhmkAvlZ2cyldvZ_KObZ05fD/view)
+
+**ER-Diagram:** [Link](https://drive.google.com/file/d/10gnc_dgU9VGtmYjPwIZN07wpJvEBgQzZ/view)
+
 ---
 
 ## Features
 
 ### Admin
+
 - Dashboard with stats and recent activity
 - Trek CRUD with **approval workflow** (Pending → Approved → Open)
 - Staff management (approve, reject, blacklist, deactivate/reactivate with reason)
@@ -20,12 +25,14 @@ Built with **Flask** (REST API + Celery + Redis + SSE) and **Vue 3** (Pinia + Bo
 - **Reports page** with Chart.js (bookings per month, treks by status)
 
 ### Staff
+
 - Dashboard with assigned treks and **treks starting in 7 days**
 - Manage assigned trek status and available slots
 - View participants; toggle payment or **mark all paid**
 - In-app notifications when assigned or reassigned (+ email)
 
 ### Trekker
+
 - Browse and filter open treks (Redis-cached listing)
 - Book / re-book / cancel treks (auto-close trek when slots hit 0)
 - Trek history + **async CSV export**
@@ -33,6 +40,7 @@ Built with **Flask** (REST API + Celery + Redis + SSE) and **Vue 3** (Pinia + Bo
 - **Booking confirmation email** (Celery)
 
 ### Cross-cutting
+
 - **In-app notification panel** (bell icon) for all roles
 - **SSE live updates** — stores refresh on new events without page reload
 - **Celery Beat** — daily trek reminder emails + monthly admin report
@@ -43,7 +51,7 @@ Built with **Flask** (REST API + Celery + Redis + SSE) and **Vue 3** (Pinia + Bo
 ## Prerequisites
 
 | Tool | Purpose |
-|------|---------|
+| --- | --- |
 | **Python 3.10+** | Backend |
 | **Node.js 22+** (or 24+) | Frontend |
 | **Redis** | SSE, caching, Celery broker |
@@ -108,8 +116,8 @@ npm install
 
 Start in this order:
 
-| # | Service | Command |
-|---|---------|---------|
+| \# | Service | Command |
+| --- | --- | --- |
 | 1 | **Redis** | `redis-server` |
 | 2 | **Flask** | `cd backend` → activate venv → `python main.py` |
 | 3 | **Celery worker** | `celery -A celery_worker.celery_app worker --loglevel=info --pool=solo -n worker1@%h` |
@@ -118,7 +126,7 @@ Start in this order:
 | 6 | **Vue dev server** | `cd frontend` → `npm run dev` |
 
 | URL | Address |
-|-----|---------|
+| --- | --- |
 | Frontend | http://localhost:5173 |
 | Backend API | http://127.0.0.1:5000/api |
 | Health check | http://127.0.0.1:5000/api/health/ |
@@ -134,7 +142,7 @@ Start in this order:
 Location: `backend/.env` (use `backend/.env.example` as template)
 
 | Variable | Description | Local default |
-|----------|-------------|---------------|
+| --- | --- | --- |
 | `SECRET_KEY` | Flask secret | change in production |
 | `JWT_SECRET_KEY` | JWT signing key | change in production |
 | `JWT_ACCESS_TOKEN_HOURS` | Token expiry | `3` |
@@ -153,7 +161,7 @@ Location: `backend/.env` (use `backend/.env.example` as template)
 Defined in `backend/db/seed_data.py`.
 
 | Role | Email | Password |
-|------|-------|----------|
+| --- | --- | --- |
 | Admin | `admin@tma.com` | `admin` |
 | Staff | `dummy_staff@tma.com` | `staff` |
 | Trekker | `dummy@tma.com` | `trekker` |
@@ -167,7 +175,7 @@ Staff must be **approved** before login. Change passwords after deployment.
 Configured in `backend/celery_worker.py` and `backend/tasks.py`.
 
 | Task | Trigger | Description |
-|------|---------|-------------|
+| --- | --- | --- |
 | `send_daily_trek_reminder` | Beat: 8:00 AM daily (IST) | Email trekkers about approved/open treks |
 | `send_monthly_admin_report` | Beat: 9:00 AM on 30th (IST) | Email monthly stats to admin |
 | `export_trekker_history_csv` | On-demand | Trekker history CSV export |
@@ -175,6 +183,7 @@ Configured in `backend/celery_worker.py` and `backend/tasks.py`.
 | `send_booking_confirmation_email` | On-demand | Email after trekker books |
 
 **Windows Celery worker flags:**
+
 - `--pool=solo` — required on Windows (avoids multiprocessing crash)
 - `-n worker1@%h` — unique worker name; run **only one** worker
 
@@ -183,7 +192,7 @@ Configured in `backend/celery_worker.py` and `backend/tasks.py`.
 ## Redis Usage
 
 | Redis DB | Purpose |
-|----------|---------|
+| --- | --- |
 | 0 | Flask-SSE, Flask-Caching |
 | 1 | Celery message broker |
 | 2 | Celery task results |
@@ -193,9 +202,11 @@ Configured in `backend/celery_worker.py` and `backend/tasks.py`.
 ## Technology Stack
 
 ### Backend
+
 Flask · Flask-SQLAlchemy · Flask-Migrate · Flask-JWT-Extended · Flask-SSE · Flask-Caching · Celery · Redis · SQLite · python-dotenv
 
 ### Frontend
+
 Vue 3 · Vue Router · Pinia · Axios · Bootstrap 5 · Bootstrap Icons · Chart.js · Vite
 
 ---
@@ -252,7 +263,7 @@ trekking-management-application_v2_23f2005522/
 Base URL: `http://127.0.0.1:5000/api`
 
 | Prefix | Role | Examples |
-|--------|------|----------|
+| --- | --- | --- |
 | `/auth` | Public | register, login, logout |
 | `/admin` | Admin | treks, staffs, trekkers, bookings, report, export |
 | `/staff` | Staff | dashboard, treks, participants, payment |
@@ -280,7 +291,7 @@ For deployment checklist, see internal docs in `resource/DEPLOYMENT_GUIDE.md` (l
 ## Troubleshooting
 
 | Problem | Fix |
-|---------|-----|
+| --- | --- |
 | `SpawnPoolWorker` / `PermissionError` | Use `--pool=solo` on Celery worker (Windows) |
 | `unknown command HELLO` (Redis) | Use `redis>=4.5,<5.0.0` in requirements.txt |
 | Duplicate Celery tasks / email not sent | Kill old celery processes; run only **1 worker + 1 beat** |
